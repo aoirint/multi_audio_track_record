@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from logging import getLogger
 
 from . import __version__ as APP_VERSION
+from .subcommand.record import add_arguments_subcommand_record
 
 logger = getLogger(__name__)
 
@@ -21,6 +22,11 @@ async def main() -> None:
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s : %(message)s",
     )
+
+    subparsers = parser.add_subparsers()
+
+    subparser_record = subparsers.add_parser("record")
+    add_arguments_subcommand_record(parser=subparser_record)
 
     args = parser.parse_args()
     if hasattr(args, "handler"):
