@@ -12,6 +12,7 @@ logger = getLogger(__name__)
 
 class Home(ft.View):  # type:ignore[misc]
     main_task_future: asyncio.Future | None
+    audio_input_device_list_view: ft.ListView | None
 
     def __init__(
         self,
@@ -25,6 +26,8 @@ class Home(ft.View):  # type:ignore[misc]
         )
 
         self.main_task_future = None
+        self.audio_input_device_list_view = None
+
         self.app_state = app_state
         self.audio_input_device_manager = audio_input_device_manager
         self.config_store_manager = config_store_manager
@@ -58,6 +61,14 @@ class Home(ft.View):  # type:ignore[misc]
             icon_size=24,
             on_click=self.on_add_audio_input_device_button_clicked,
         )
+
+        audio_input_device_list_view = ft.ListView(
+            expand=1,
+            spacing=10,
+            padding=20,
+            auto_scroll=True,
+        )
+        self.audio_input_device_list_view = audio_input_device_list_view
 
         add_track_button = ft.IconButton(
             icon=ft.icons.ADD,
@@ -162,7 +173,7 @@ class Home(ft.View):  # type:ignore[misc]
                                             add_audio_input_device_button,
                                         ],
                                     ),
-                                    ft.Text(value="（未実装）"),
+                                    audio_input_device_list_view,
                                 ],
                                 expand=True,
                             ),
@@ -206,6 +217,27 @@ class Home(ft.View):  # type:ignore[misc]
         if main_task_future is not None:
             main_task_future.cancel()
 
+    async def load_scene(self, index: int) -> None:
+        app_state = self.app_state
+        page = self.page
+        audio_input_device_list_view = self.audio_input_device_list_view
+
+        assert audio_input_device_list_view is not None
+
+        scene = app_state.scenes[index]
+
+        audio_input_device_list_view.controls.clear()
+        for device in scene.devices:
+            audio_input_device_list_view.controls.append(
+                ft.Text(f"{device.portaudio_name}")
+            )
+
+        app_state.is_recording = False
+        app_state.is_paused = False
+
+        app_state.selected_scene_index = index
+        page.update()
+
     async def on_add_scene_button_clicked(
         self,
         event: ft.ControlEvent,
@@ -239,4 +271,4 @@ class Home(ft.View):  # type:ignore[misc]
         )
 
     async def main_task(self) -> None:
-        pass
+        await self.load_scene(index=0)

@@ -19,7 +19,7 @@ class _PyAudioHostApiInfo(BaseModel):
     """
 
     index: int
-    structVersion: int
+    struct_version: Annotated[int, Field(alias="structVersion")]
     type: int
     """
     PaHostApiTypeId の値
@@ -40,29 +40,47 @@ class _PyAudioHostApiInfo(BaseModel):
 
 class _PyAudioDeviceInfo(BaseModel):
     index: int
+    struct_version: Annotated[int, Field(alias="structVersion")]
     name: str
+    host_api: Annotated[int, Field(alias="hostApi")]
     max_input_channels: Annotated[int, Field(alias="maxInputChannels")]
     max_output_channels: Annotated[int, Field(alias="maxOutputChannels")]
+    default_low_input_latency: Annotated[float, Field(alias="defaultLowInputLatency")]
+    default_low_output_latency: Annotated[float, Field(alias="defaultLowOutputLatency")]
+    default_high_input_latency: Annotated[float, Field(alias="defaultHighInputLatency")]
+    default_high_output_latency: Annotated[
+        float, Field(alias="defaultHighOutputLatency")
+    ]
+    default_sample_rate: Annotated[float, Field(alias="defaultSampleRate")]
 
 
 class AudioInputDeviceManagerPyAudio(AudioInputDeviceManager):
     def __init__(self) -> None:
         self.__pyaudio_instance = pyaudio.PyAudio()
 
-    async def get_audio_input_devices(self) -> list[AudioInputDevice]:
+    async def __get_default_host_api_info(self) -> _PyAudioHostApiInfo:
         __pyaudio_instance = self.__pyaudio_instance
 
         default_host_api_info_dict = __pyaudio_instance.get_default_host_api_info()
         default_host_api_info = _PyAudioHostApiInfo.model_validate(
             default_host_api_info_dict
         )
-        device_count = default_host_api_info.device_count
+
+        return default_host_api_info
+
+    async def __get_audio_input_devices_with_host_api_info(
+        self,
+        host_api_info: _PyAudioHostApiInfo,
+    ) -> list[AudioInputDevice]:
+        __pyaudio_instance = self.__pyaudio_instance
+
+        device_count = host_api_info.device_count
 
         audio_input_devices: list[AudioInputDevice] = []
         for host_api_device_index in range(device_count):
             device_info_dict = (
                 __pyaudio_instance.get_device_info_by_host_api_device_index(
-                    host_api_index=default_host_api_info.index,
+                    host_api_index=host_api_info.index,
                     host_api_device_index=host_api_device_index,
                 )
             )
@@ -74,11 +92,39 @@ class AudioInputDeviceManagerPyAudio(AudioInputDeviceManager):
             audio_input_devices.append(
                 AudioInputDevice(
                     portaudio_name=device_info.name,
-                    portaudio_host_api_type=default_host_api_info.type,
-                    portaudio_host_api_index=default_host_api_info.index,
+                    portaudio_index=device_info.index,
+                    portaudio_host_api_type=host_api_info.type,
+                    portaudio_host_api_index=host_api_info.index,
                     portaudio_host_api_device_index=host_api_device_index,
                     max_channels=device_info.max_input_channels,
                 )
             )
 
         return audio_input_devices
+
+    async def get_audio_input_devices(self) -> list[AudioInputDevice]:
+        default_host_api_info = await self.__get_default_host_api_info()
+        audio_input_devices = await self.__get_audio_input_devices_with_host_api_info(
+            host_api_info=default_host_api_info,
+        )
+
+        return audio_input_devices
+
+    async def get_default_audio_input_device(self) -> AudioInputDevice:
+        __pyaudio_instance = self.__pyaudio_instance
+
+        default_host_api_info_dict = __pyaudio_instance.get_default_host_api_info()
+        default_host_api_info = _PyAudioHostApiInfo.model_validate(
+            default_host_api_info_dict
+        )
+        default_input_device_index = default_host_api_info.default_input_device
+
+        audio_input_devices = await self.__get_audio_input_devices_with_host_api_info(
+            host_api_info=default_host_api_info,
+        )
+
+        for audio_input_device in audio_input_devices:
+            if audio_input_device.portaudio_index == default_input_device_index:
+                return audio_input_device
+
+        raise Exception("Unexpected state. Default input device not found.")

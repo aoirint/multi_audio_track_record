@@ -19,12 +19,10 @@ logger = getLogger(__name__)
 async def create_default_scene(
     audio_input_device_manager: AudioInputDeviceManager,
 ) -> Scene:
-    _audio_input_devices = await audio_input_device_manager.get_audio_input_devices()
-    _desktop_dir = platformdirs.user_desktop_path()
-
     _default_audio_input_device = (
-        _audio_input_devices[0] if len(_audio_input_devices) > 0 else None
+        await audio_input_device_manager.get_default_audio_input_device()
     )
+    _desktop_dir = platformdirs.user_desktop_path()
 
     _default_scene = Scene(
         name="デフォルト",
@@ -90,11 +88,6 @@ async def flet_app_main(page: ft.Page) -> None:
         is_paused=False,
         is_muted=False,
     )
-
-    async def load_scene(index: int) -> None:
-        app_state.selected_scene_index = index
-
-        raise NotImplementedError()
 
     async def on_route_change(event: ft.RouteChangeEvent) -> None:
         if page.route == "/":
