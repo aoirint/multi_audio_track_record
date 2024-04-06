@@ -86,6 +86,9 @@ async def flet_app_main(page: ft.Page) -> None:
                 ),
             )
         add_audio_input_dialog_audio_input_device_dropdown.options = options
+        add_audio_input_dialog_audio_input_device_dropdown.value = (
+            options[0].key if len(options) > 0 else None
+        )
 
         page.dialog = add_audio_input_dialog
         add_audio_input_dialog.open = True
