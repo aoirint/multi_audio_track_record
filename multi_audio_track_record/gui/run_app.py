@@ -93,6 +93,7 @@ async def flet_app_main(page: ft.Page) -> None:
 
     async def on_route_change(event: ft.RouteChangeEvent) -> None:
         if page.route == "/":
+            page.views.clear()
             page.views.append(
                 Home(
                     route="/",
@@ -100,6 +101,9 @@ async def flet_app_main(page: ft.Page) -> None:
                     audio_input_device_manager=audio_input_device_manager,
                     config_store_manager=config_store_manager,
                 ),
+            )
+            logger.info(
+                f"on_route_change: route={page.route}, view_count={len(page.views)}"
             )
 
         elif page.route == "/add_audio_input_device":
@@ -110,6 +114,9 @@ async def flet_app_main(page: ft.Page) -> None:
                     audio_input_device_manager=audio_input_device_manager,
                     config_store_manager=config_store_manager,
                 ),
+            )
+            logger.info(
+                f"on_route_change: route={page.route}, view_count={len(page.views)}"
             )
 
         page.update()
