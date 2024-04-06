@@ -6,6 +6,7 @@ import platformdirs
 
 from .. import __version__ as APP_VERSION
 from ..audio import get_audio_input_devices
+from ..config import load_config_file
 from ..scene import Scene, SceneDevice, SceneTrack
 
 logger = getLogger(__name__)
@@ -13,7 +14,8 @@ logger = getLogger(__name__)
 
 @dataclass
 class AppState:
-    scene: Scene | None
+    scenes: list[Scene]
+    selected_scene_index: int | None
     is_recording: bool
     is_paused: bool
     is_muted: bool
@@ -24,8 +26,21 @@ async def flet_app_main(page: ft.Page) -> None:
     page.window_width = 400
     page.window_height = 400
 
+    config_dir = platformdirs.user_config_path(
+        appauthor="aoirint",
+        appname="MultiAudioTrackRecorder",
+    )
+    config_file_path = config_dir / "config.json"
+
+    _scenes: list[Scene] = []
+    if config_file_path.exists():
+        config = load_config_file(path=config_file_path)
+        for scene in config.scenes:
+            _scenes.append(scene)
+
     app_state = AppState(
-        scene=None,
+        scenes=_scenes,
+        selected_scene_index=None,
         is_recording=False,
         is_paused=False,
         is_muted=False,
@@ -59,7 +74,6 @@ async def flet_app_main(page: ft.Page) -> None:
         )
 
         _default_scene = Scene(
-            struct_version=1,
             name="untitled",
             output_dir=str(_desktop_dir.resolve()),
             tracks=[

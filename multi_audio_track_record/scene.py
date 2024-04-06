@@ -1,6 +1,3 @@
-import json
-from pathlib import Path
-
 from pydantic import BaseModel
 
 
@@ -20,21 +17,7 @@ class SceneDevice(BaseModel):
 
 
 class Scene(BaseModel):
-    struct_version: int
     name: str
     output_dir: str
     tracks: list[SceneTrack]
     devices: list[SceneDevice]
-
-
-def load_scene_file(path: Path) -> Scene:
-    with path.open(mode="r", encoding="utf-8") as fp:
-        serialized_scene_dict = json.load(fp)
-
-    return Scene.model_validate(serialized_scene_dict)
-
-
-def save_scene_file(scene: Scene, path: Path) -> None:
-    with path.open(mode="w", encoding="utf-8") as fp:
-        serialized_scene_dict = scene.model_dump()
-        json.dump(serialized_scene_dict, fp)
