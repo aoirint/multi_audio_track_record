@@ -1,7 +1,9 @@
 import asyncio
+import tempfile
 from logging import getLogger
 
 import flet as ft
+import pyaudio
 
 from ...audio_input_device_manager import AudioInputDeviceManager
 from ...config_store_manager import Config, ConfigStoreManager
@@ -12,6 +14,7 @@ logger = getLogger(__name__)
 
 class Home(ft.View):  # type:ignore[misc]
     main_task_future: asyncio.Future | None
+    record_task_future: asyncio.Future | None
     audio_input_device_list_view: ft.ListView | None
 
     def __init__(
@@ -26,6 +29,7 @@ class Home(ft.View):  # type:ignore[misc]
         )
 
         self.main_task_future = None
+        self.record_task_future = None
         self.audio_input_device_list_view = None
 
         self.app_state = app_state
@@ -118,6 +122,8 @@ class Home(ft.View):  # type:ignore[misc]
         mute_button.on_click = on_mute_button_clicked
 
         async def on_record_button_clicked(event: ft.ControlEvent) -> None:
+            page = self.page
+
             next_is_recording = not app_state.is_recording
             logger.info(
                 "record button clicked: is_recording: "
@@ -125,16 +131,25 @@ class Home(ft.View):  # type:ignore[misc]
             )
 
             if next_is_recording:
+                # 録音開始
                 record_button.icon = ft.icons.STOP
+
+                pause_button.icon = ft.icons.PAUSE
                 pause_button.disabled = False
 
                 app_state.is_paused = False
+                app_state.is_recording = True
+
+                self.record_task_future = page.run_task(self.record_task)
             else:
+                # 録音終了
                 record_button.icon = ft.icons.FIBER_MANUAL_RECORD
+
                 pause_button.icon = ft.icons.PAUSE
                 pause_button.disabled = True
 
-            app_state.is_recording = next_is_recording
+                app_state.is_paused = False
+                app_state.is_recording = False
 
             page.update()
 
@@ -290,3 +305,69 @@ class Home(ft.View):  # type:ignore[misc]
 
     async def main_task(self) -> None:
         await self.load_scene(index=0)
+
+    async def record_task(self) -> None:
+        app_state = self.app_state
+
+        selected_scene_index = self.app_state.selected_scene_index
+        assert selected_scene_index is not None
+        scene = self.app_state.scenes[selected_scene_index]
+
+        first_audio_input_device = scene.devices[0]
+
+        input_sampling_rate = 44100
+        channels = 1
+        format = pyaudio.paFloat32
+        num_frames = 1024
+
+        pyaudio_instance = pyaudio.PyAudio()
+
+        with tempfile.NamedTemporaryFile() as fp:
+            stream = pyaudio_instance.open(
+                input=True,
+                input_device_index=first_audio_input_device.portaudio_index,
+                rate=input_sampling_rate,
+                channels=channels,
+                format=format,
+                frames_per_buffer=num_frames,
+            )
+
+            total_byte_count = 0
+            try:
+                while app_state.is_recording:
+                    chunk_bytes = stream.read(num_frames=num_frames)
+                    fp.write(chunk_bytes)
+
+                    total_byte_count += len(chunk_bytes)
+                    logger.info(f"[recording] total byte count: {total_byte_count}")
+
+                    await asyncio.sleep(0.01)
+            finally:
+                stream.close()
+
+            fp.flush()
+
+            output_file = "work/output.m4a"
+            cmd = [
+                "ffmpeg",
+                "-f",
+                "f32le",
+                "-ar",
+                str(input_sampling_rate),
+                "-ac",
+                str(channels),
+                "-i",
+                fp.name,
+                "-c:a",
+                "aac",  # Native FFmpeg AAC Encoder
+                "-b:a",
+                "160k",
+                output_file,
+            ]
+            proc = await asyncio.create_subprocess_exec(
+                cmd[0],
+                *cmd[1:],
+            )
+
+            return_code = await proc.wait()
+            logger.info(f"FFmpeg return code: {return_code}")
