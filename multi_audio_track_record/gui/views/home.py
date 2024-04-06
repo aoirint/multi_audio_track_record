@@ -33,6 +33,12 @@ class Home(ft.View):  # type:ignore[misc]
         page = self.page
         app_state = self.app_state
 
+        add_scene_button = ft.IconButton(
+            icon=ft.icons.ADD,
+            icon_size=24,
+            on_click=self.on_add_scene_button_clicked,
+        )
+
         add_audio_input_device_button = ft.IconButton(
             icon=ft.icons.ADD,
             icon_size=24,
@@ -124,6 +130,7 @@ class Home(ft.View):  # type:ignore[misc]
                     ft.Column(
                         controls=[
                             ft.Text(value="シーン"),
+                            add_scene_button,
                             ft.Text(value="（未実装）"),
                         ],
                     ),
@@ -172,6 +179,9 @@ class Home(ft.View):  # type:ignore[misc]
         main_task_future = self.main_task_future
         if main_task_future is not None:
             main_task_future.cancel()
+
+    async def on_add_scene_button_clicked(self, event: ft.ControlEvent) -> None:
+        logger.info("on_add_scene_button_clicked")
 
     async def on_add_audio_input_device_button_clicked(
         self, event: ft.ControlEvent
