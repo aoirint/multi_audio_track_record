@@ -23,7 +23,7 @@ class AppState:
 
 async def flet_app_main(page: ft.Page) -> None:
     page.title = f"Multi Audio Track Recorder v{APP_VERSION}"
-    page.window_width = 400
+    page.window_width = 600
     page.window_height = 400
 
     config_dir = platformdirs.user_config_path(
@@ -44,6 +44,15 @@ async def flet_app_main(page: ft.Page) -> None:
         is_recording=False,
         is_paused=False,
         is_muted=False,
+    )
+
+    add_audio_input_device_button = ft.IconButton(
+        icon=ft.icons.ADD,
+        icon_size=24,
+    )
+    add_track_button = ft.IconButton(
+        icon=ft.icons.ADD,
+        icon_size=24,
     )
 
     mute_button = ft.IconButton(
@@ -171,8 +180,37 @@ async def flet_app_main(page: ft.Page) -> None:
     pause_button.on_click = on_pause_button_clicked
 
     page.add(
-        ft.Container(
-            ft.Text(value="label"),
+        ft.Column(
+            controls=[
+                ft.Column(
+                    controls=[
+                        ft.Text(value="シーン"),
+                        ft.Text(value="（未実装）"),
+                    ],
+                ),
+                ft.Row(
+                    controls=[
+                        ft.Column(
+                            controls=[
+                                ft.Text(value="音声入力デバイス"),
+                                add_audio_input_device_button,
+                                ft.Text(value="（未実装）"),
+                            ],
+                            expand=True,
+                        ),
+                        ft.Column(
+                            controls=[
+                                ft.Text(value="トラック"),
+                                add_track_button,
+                                ft.Text(value="（未実装）"),
+                            ],
+                            expand=True,
+                        ),
+                    ],
+                    expand=True,
+                ),
+            ],
+            spacing=24,
             expand=True,
         ),
         ft.Row(
