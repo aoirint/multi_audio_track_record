@@ -76,6 +76,14 @@ class Home(ft.View):  # type:ignore[misc]
             on_click=self.on_add_track_button_clicked,
         )
 
+        track_list_view = ft.ListView(
+            expand=1,
+            spacing=10,
+            padding=20,
+            auto_scroll=True,
+        )
+        self.track_list_view = track_list_view
+
         mute_button = ft.IconButton(
             icon=ft.icons.MIC,
             icon_size=32,
@@ -185,7 +193,7 @@ class Home(ft.View):  # type:ignore[misc]
                                             add_track_button,
                                         ],
                                     ),
-                                    ft.Text(value="（未実装）"),
+                                    track_list_view,
                                 ],
                                 expand=True,
                             ),
@@ -221,6 +229,7 @@ class Home(ft.View):  # type:ignore[misc]
         app_state = self.app_state
         page = self.page
         audio_input_device_list_view = self.audio_input_device_list_view
+        track_list_view = self.track_list_view
 
         assert audio_input_device_list_view is not None
 
@@ -231,6 +240,9 @@ class Home(ft.View):  # type:ignore[misc]
             audio_input_device_list_view.controls.append(
                 ft.Text(f"{device.portaudio_name}")
             )
+
+        for track in scene.tracks:
+            track_list_view.controls.append(ft.Text(f"{track.name}"))
 
         app_state.is_recording = False
         app_state.is_paused = False
