@@ -32,7 +32,9 @@ async def main() -> None:
     args = parser.parse_args()
     if hasattr(args, "handler"):
         handler = args.handler
-        if asyncio.iscoroutine(handler):
+        assert callable(args.handler)
+
+        if asyncio.iscoroutinefunction(handler):
             await handler(args)
         else:
             handler(args)
