@@ -180,17 +180,24 @@ class Home(ft.View):  # type:ignore[misc]
         if main_task_future is not None:
             main_task_future.cancel()
 
-    async def on_add_scene_button_clicked(self, event: ft.ControlEvent) -> None:
+    async def on_add_scene_button_clicked(
+        self,
+        event: ft.ControlEvent,
+    ) -> None:
         logger.info("on_add_scene_button_clicked")
 
     async def on_add_audio_input_device_button_clicked(
-        self, event: ft.ControlEvent
+        self,
+        event: ft.ControlEvent,
     ) -> None:
         page = self.page
 
         page.go("/add_audio_input_device")
 
-    async def on_add_track_button_clicked(self, event: ft.ControlEvent) -> None:
+    async def on_add_track_button_clicked(
+        self,
+        event: ft.ControlEvent,
+    ) -> None:
         logger.info("on_add_track_button_clicked")
 
     async def save_config(self) -> None:
