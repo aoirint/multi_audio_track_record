@@ -11,7 +11,7 @@ from ..app_state import AppState
 logger = getLogger(__name__)
 
 
-class AddAudioInputDialog(ft.View):  # type:ignore[misc]
+class AddAudioInputDeviceDialog(ft.View):  # type:ignore[misc]
     main_task_future: asyncio.Future | None
 
     audio_input_device_dropdown: ft.Dropdown | None

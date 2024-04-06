@@ -11,7 +11,7 @@ from ..audio_input_device_manager import (
 from ..config_store_manager import ConfigStoreManager, ConfigStoreManagerFile
 from ..scene import Scene, SceneDevice, SceneTrack
 from .app_state import AppState
-from .views import AddAudioInputDialog, Home
+from .views import AddAudioInputDeviceDialog, Home
 
 logger = getLogger(__name__)
 
@@ -107,7 +107,7 @@ async def flet_app_main(page: ft.Page) -> None:
 
         elif page.route == "/add_audio_input_device":
             page.views.append(
-                AddAudioInputDialog(
+                AddAudioInputDeviceDialog(
                     route="/add_audio_input_device",
                     app_state=app_state,
                     audio_input_device_manager=audio_input_device_manager,
