@@ -49,6 +49,7 @@ class AddAudioInputDialog(ft.View):  # type:ignore[misc]
             ft.Container(
                 content=ft.Column(
                     controls=[
+                        ft.Text("音声入力デバイス"),
                         audio_input_device_dropdown,
                         ft.Container(
                             expand=True,
