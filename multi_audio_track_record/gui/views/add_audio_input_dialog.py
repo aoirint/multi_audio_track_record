@@ -5,6 +5,7 @@ import flet as ft
 
 from ...audio_input_device_manager import AudioInputDevice, AudioInputDeviceManager
 from ...config_store_manager import ConfigStoreManager
+from ...scene import SceneDevice
 from ..app_state import AppState
 
 logger = getLogger(__name__)
@@ -109,6 +110,9 @@ class AddAudioInputDialog(ft.View):  # type:ignore[misc]
         self,
         event: ft.ControlEvent,
     ) -> None:
+        page = self.page
+        app_state = self.app_state
+
         audio_input_device_dropdown = self.audio_input_device_dropdown
         assert audio_input_device_dropdown is not None
 
@@ -122,3 +126,22 @@ class AddAudioInputDialog(ft.View):  # type:ignore[misc]
 
         audio_input_device = audio_input_devices[selected_audio_input_device_index]
         logger.info(f"selected {audio_input_device}")
+
+        assert app_state.selected_scene_index is not None
+        scene = app_state.scenes[app_state.selected_scene_index]
+        scene.devices.append(
+            SceneDevice(
+                portaudio_name=audio_input_device.portaudio_name,
+                portaudio_index=audio_input_device.portaudio_index,
+                portaudio_host_api_type=audio_input_device.portaudio_host_api_type,
+                portaudio_host_api_index=audio_input_device.portaudio_host_api_index,
+                portaudio_host_api_device_index=audio_input_device.portaudio_host_api_device_index,
+                channels=audio_input_device.max_channels,
+                gain=0,
+                muted=False,
+                tracks=[0],
+            ),
+        )
+
+        page.views.pop()
+        page.go("/")

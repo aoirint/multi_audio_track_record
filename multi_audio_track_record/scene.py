@@ -7,6 +7,7 @@ class SceneTrack(BaseModel):
 
 class SceneDevice(BaseModel):
     portaudio_name: str
+    portaudio_index: int
     portaudio_host_api_type: int
     portaudio_host_api_index: int
     portaudio_host_api_device_index: int
