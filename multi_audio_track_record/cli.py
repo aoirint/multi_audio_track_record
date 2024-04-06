@@ -23,6 +23,6 @@ async def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s : %(message)s",
     )
 
-    args = parser.parse_args()
+    parser.parse_args()
 
     await run_app()

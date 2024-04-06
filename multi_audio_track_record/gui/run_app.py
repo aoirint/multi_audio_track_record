@@ -58,7 +58,8 @@ async def flet_app_main(page: ft.Page) -> None:
     async def on_record_button_clicked(event: ft.ControlEvent) -> None:
         next_is_recording = not app_state.is_recording
         logger.info(
-            f"record button clicked: is_recording: {app_state.is_recording} -> {next_is_recording}"
+            "record button clicked: is_recording: "
+            f"{app_state.is_recording} -> {next_is_recording}"
         )
 
         if next_is_recording:
