@@ -2,17 +2,21 @@ from dataclasses import dataclass
 from logging import getLogger
 
 import flet as ft
+import platformdirs
 
 from .. import __version__ as APP_VERSION
+from ..audio import get_audio_input_devices
+from ..scene import Scene, SceneDevice, SceneTrack
 
 logger = getLogger(__name__)
 
 
 @dataclass
 class AppState:
-    is_recording: bool = False
-    is_paused: bool = False
-    is_muted: bool = False
+    scene: Scene | None
+    is_recording: bool
+    is_paused: bool
+    is_muted: bool
 
 
 async def flet_app_main(page: ft.Page) -> None:
@@ -20,7 +24,12 @@ async def flet_app_main(page: ft.Page) -> None:
     page.window_width = 400
     page.window_height = 400
 
-    app_state = AppState()
+    app_state = AppState(
+        scene=None,
+        is_recording=False,
+        is_paused=False,
+        is_muted=False,
+    )
 
     mute_button = ft.IconButton(
         icon=ft.icons.MIC,
@@ -37,6 +46,44 @@ async def flet_app_main(page: ft.Page) -> None:
         icon_size=32,
         disabled=True,
     )
+
+    async def load_scene(scene: Scene) -> None:
+        raise NotImplementedError()
+
+    async def load_default_scene() -> None:
+        _audio_input_devices = get_audio_input_devices()
+        _desktop_dir = platformdirs.user_desktop_path()
+
+        _default_audio_input_device = (
+            _audio_input_devices[0] if len(_audio_input_devices) > 0 else None
+        )
+
+        _default_scene = Scene(
+            struct_version=1,
+            name="untitled",
+            output_dir=str(_desktop_dir.resolve()),
+            tracks=[
+                SceneTrack(name="default"),
+            ],
+            devices=(
+                [
+                    SceneDevice(
+                        portaudio_name=_default_audio_input_device.portaudio_name,
+                        portaudio_host_api_type=_default_audio_input_device.portaudio_host_api_type,
+                        portaudio_host_api_index=_default_audio_input_device.portaudio_host_api_index,
+                        portaudio_host_api_device_index=_default_audio_input_device.portaudio_host_api_device_index,
+                        channels=_default_audio_input_device.max_channels,
+                        gain=0,
+                        muted=False,
+                        tracks=[0],
+                    ),
+                ]
+                if _default_audio_input_device is not None
+                else []
+            ),
+        )
+
+        await load_scene(scene=_default_scene)
 
     async def on_mute_button_clicked(event: ft.ControlEvent) -> None:
         next_is_muted = not app_state.is_muted

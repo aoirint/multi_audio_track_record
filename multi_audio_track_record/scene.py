@@ -1,8 +1,7 @@
 import json
 from pathlib import Path
-from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class SceneTrack(BaseModel):
@@ -23,6 +22,7 @@ class SceneDevice(BaseModel):
 class Scene(BaseModel):
     struct_version: int
     name: str
+    output_dir: str
     tracks: list[SceneTrack]
     devices: list[SceneDevice]
 
