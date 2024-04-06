@@ -357,7 +357,15 @@ class Home(ft.View):  # type:ignore[misc]
                                 chunk_bytes = audio_input_stream.read(
                                     num_frames=num_frames
                                 )
-                                fp.write(chunk_bytes)
+
+                                is_muted = (
+                                    app_state.is_muted or first_audio_input_device.muted
+                                )
+                                if not is_muted:
+                                    fp.write(chunk_bytes)
+                                else:
+                                    # ミュート中は -60 dB 扱い
+                                    fp.write(struct.pack("<f", 1e-3) * len(chunk_bytes))
 
                                 total_byte_count += len(chunk_bytes)
 
