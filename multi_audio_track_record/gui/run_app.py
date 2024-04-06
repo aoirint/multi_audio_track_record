@@ -46,9 +46,55 @@ async def flet_app_main(page: ft.Page) -> None:
         is_muted=False,
     )
 
+    add_audio_input_dialog_audio_input_device_dropdown = ft.Dropdown()
+    add_audio_input_dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Text("音声入力デバイスを選択"),
+        content=ft.Container(
+            content=add_audio_input_dialog_audio_input_device_dropdown,
+        ),
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+
+    async def on_add_audio_input_dialog_completed(event: ft.ControlEvent) -> None:
+        add_audio_input_dialog.open = False
+        page.update()
+
+    async def on_add_audio_input_dialog_canceled(event: ft.ControlEvent) -> None:
+        add_audio_input_dialog.open = False
+        page.update()
+
+    add_audio_input_dialog.actions = [
+        ft.TextButton("キャンセル", on_click=on_add_audio_input_dialog_canceled),
+        ft.TextButton("追加", on_click=on_add_audio_input_dialog_completed),
+    ]
+    add_audio_input_dialog.on_dismiss = on_add_audio_input_dialog_canceled
+
+    async def open_add_audio_input_dialog(event: ft.ControlEvent) -> None:
+        audio_input_devices = get_audio_input_devices()
+
+        add_audio_input_dialog_audio_input_device_dropdown.value = None
+
+        options: list[ft.dropdown.Option] = []
+        for audio_input_device_index, audio_input_device in enumerate(
+            audio_input_devices
+        ):
+            options.append(
+                ft.dropdown.Option(
+                    key=f"{audio_input_device_index}",
+                    text=audio_input_device.portaudio_name,
+                ),
+            )
+        add_audio_input_dialog_audio_input_device_dropdown.options = options
+
+        page.dialog = add_audio_input_dialog
+        add_audio_input_dialog.open = True
+        page.update()
+
     add_audio_input_device_button = ft.IconButton(
         icon=ft.icons.ADD,
         icon_size=24,
+        on_click=open_add_audio_input_dialog,
     )
     add_track_button = ft.IconButton(
         icon=ft.icons.ADD,
