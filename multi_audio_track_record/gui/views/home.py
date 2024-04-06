@@ -324,6 +324,9 @@ class Home(ft.View):  # type:ignore[misc]
 
             first_audio_input_device = scene.devices[0]
 
+            first_track = scene.tracks[0]
+            first_track_name = first_track.name
+
             input_sampling_rate = 44100
             channels = 1
             format = pyaudio.paFloat32
@@ -408,10 +411,16 @@ class Home(ft.View):  # type:ignore[misc]
                         str(channels),
                         "-i",
                         str(temp_output_path.resolve()),
+                        "-map",
+                        "0:a:0",
                         "-c:a",
                         "aac",  # Native FFmpeg AAC Encoder
                         "-b:a",
                         "160k",
+                        "-metadata:s:a:0",
+                        f"title={first_track_name}",  # .mp4
+                        "-metadata:s:a:0",
+                        f"handler_name={first_track_name}",  # .m4a (but VLC not working)
                         output_file,
                     ]
                     proc = await asyncio.create_subprocess_exec(
