@@ -238,7 +238,13 @@ class Home(ft.View):  # type:ignore[misc]
         audio_input_device_list_view.controls.clear()
         for device in scene.devices:
             audio_input_device_list_view.controls.append(
-                ft.Text(f"{device.portaudio_name}")
+                ft.Row(
+                    controls=[
+                        ft.Icon(name=ft.icons.MIC, size=16, color=ft.colors.ON_SURFACE),
+                        ft.Text(f"{device.portaudio_name}"),
+                        ft.IconButton(icon=ft.icons.MIC),
+                    ],
+                ),
             )
 
         for track in scene.tracks:
