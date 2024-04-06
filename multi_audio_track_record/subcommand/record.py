@@ -7,19 +7,19 @@ class SubcommandRecordArguments(BaseModel):
     pass
 
 
-def subcommand_record(args: SubcommandRecordArguments) -> None:
+async def subcommand_record(args: SubcommandRecordArguments) -> None:
     pass
 
 
-def execute_subcommand_record(
+async def execute_subcommand_record(
     args: Namespace,
 ) -> None:
-    subcommand_record(
+    await subcommand_record(
         args=SubcommandRecordArguments(),
     )
 
 
-def add_arguments_subcommand_record(
+async def add_arguments_subcommand_record(
     parser: ArgumentParser,
 ) -> None:
     parser.set_defaults(handler=execute_subcommand_record)

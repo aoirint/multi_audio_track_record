@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from argparse import ArgumentParser
 from logging import getLogger
@@ -26,10 +27,14 @@ async def main() -> None:
     subparsers = parser.add_subparsers()
 
     subparser_record = subparsers.add_parser("record")
-    add_arguments_subcommand_record(parser=subparser_record)
+    await add_arguments_subcommand_record(parser=subparser_record)
 
     args = parser.parse_args()
     if hasattr(args, "handler"):
-        args.handler(args)
+        handler = args.handler
+        if asyncio.iscoroutine(handler):
+            await handler(args)
+        else:
+            handler(args)
     else:
         parser.print_help()
