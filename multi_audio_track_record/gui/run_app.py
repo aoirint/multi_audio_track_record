@@ -18,8 +18,8 @@ logger = getLogger(__name__)
 
 async def flet_app_main(page: ft.Page) -> None:
     page.title = f"Multi Audio Track Recorder v{APP_VERSION}"
-    page.window_width = 600
-    page.window_height = 400
+    page.window_width = 800
+    page.window_height = 600
 
     config_dir = platformdirs.user_config_path(
         appauthor="aoirint",
