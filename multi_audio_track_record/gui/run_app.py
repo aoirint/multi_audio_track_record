@@ -49,7 +49,7 @@ async def flet_app_main(page: ft.Page) -> None:
         else:
             mute_button.icon = ft.icons.MIC
 
-        await page.update_async()
+        page.update()
 
         app_state.is_muted = next_is_muted
 
@@ -69,7 +69,7 @@ async def flet_app_main(page: ft.Page) -> None:
             pause_button.icon = ft.icons.PAUSE
             pause_button.disabled = True
 
-        await page.update_async()
+        page.update()
 
         if next_is_recording:
             app_state.is_paused = False
@@ -89,7 +89,7 @@ async def flet_app_main(page: ft.Page) -> None:
         else:
             pause_button.icon = ft.icons.PAUSE
 
-        await page.update_async()
+        page.update()
 
         app_state.is_paused = not app_state.is_paused
 
