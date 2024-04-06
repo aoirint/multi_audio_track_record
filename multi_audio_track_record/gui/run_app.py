@@ -16,6 +16,43 @@ from .views import AddAudioInputDialog, Home
 logger = getLogger(__name__)
 
 
+async def create_default_scene(
+    audio_input_device_manager: AudioInputDeviceManager,
+) -> Scene:
+    _audio_input_devices = await audio_input_device_manager.get_audio_input_devices()
+    _desktop_dir = platformdirs.user_desktop_path()
+
+    _default_audio_input_device = (
+        _audio_input_devices[0] if len(_audio_input_devices) > 0 else None
+    )
+
+    _default_scene = Scene(
+        name="デフォルト",
+        output_dir=str(_desktop_dir.resolve()),
+        tracks=[
+            SceneTrack(name="デフォルト"),
+        ],
+        devices=(
+            [
+                SceneDevice(
+                    portaudio_name=_default_audio_input_device.portaudio_name,
+                    portaudio_host_api_type=_default_audio_input_device.portaudio_host_api_type,
+                    portaudio_host_api_index=_default_audio_input_device.portaudio_host_api_index,
+                    portaudio_host_api_device_index=_default_audio_input_device.portaudio_host_api_device_index,
+                    channels=_default_audio_input_device.max_channels,
+                    gain=0,
+                    muted=False,
+                    tracks=[0],
+                ),
+            ]
+            if _default_audio_input_device is not None
+            else []
+        ),
+    )
+
+    return _default_scene
+
+
 async def flet_app_main(page: ft.Page) -> None:
     page.title = f"Multi Audio Track Recorder v{APP_VERSION}"
     page.window_width = 800
@@ -39,6 +76,12 @@ async def flet_app_main(page: ft.Page) -> None:
         config = await config_store_manager.load_config()
         for scene in config.scenes:
             _scenes.append(scene)
+    else:
+        # 初回起動
+        default_scene = await create_default_scene(
+            audio_input_device_manager=audio_input_device_manager,
+        )
+        _scenes.append(default_scene)
 
     app_state = AppState(
         scenes=_scenes,
@@ -52,44 +95,6 @@ async def flet_app_main(page: ft.Page) -> None:
         app_state.selected_scene_index = index
 
         raise NotImplementedError()
-
-    async def add_default_scene() -> None:
-        _audio_input_devices = (
-            await audio_input_device_manager.get_audio_input_devices()
-        )
-        _desktop_dir = platformdirs.user_desktop_path()
-
-        _default_audio_input_device = (
-            _audio_input_devices[0] if len(_audio_input_devices) > 0 else None
-        )
-
-        _default_scene = Scene(
-            name="untitled",
-            output_dir=str(_desktop_dir.resolve()),
-            tracks=[
-                SceneTrack(name="default"),
-            ],
-            devices=(
-                [
-                    SceneDevice(
-                        portaudio_name=_default_audio_input_device.portaudio_name,
-                        portaudio_host_api_type=_default_audio_input_device.portaudio_host_api_type,
-                        portaudio_host_api_index=_default_audio_input_device.portaudio_host_api_index,
-                        portaudio_host_api_device_index=_default_audio_input_device.portaudio_host_api_device_index,
-                        channels=_default_audio_input_device.max_channels,
-                        gain=0,
-                        muted=False,
-                        tracks=[0],
-                    ),
-                ]
-                if _default_audio_input_device is not None
-                else []
-            ),
-        )
-
-        app_state.scenes.append(_default_scene)
-        default_scene_index = len(app_state.scenes) - 1
-        await load_scene(index=default_scene_index)
 
     async def on_route_change(event: ft.RouteChangeEvent) -> None:
         if page.route == "/":
