@@ -6,7 +6,7 @@ import platformdirs
 
 from .. import __version__ as APP_VERSION
 from ..audio import get_audio_input_devices
-from ..config import load_config_file
+from ..config import Config, load_config_file, save_config_file
 from ..scene import Scene, SceneDevice, SceneTrack
 
 logger = getLogger(__name__)
@@ -62,10 +62,22 @@ async def flet_app_main(page: ft.Page) -> None:
         disabled=True,
     )
 
-    async def load_scene(scene: Scene) -> None:
+    async def save_config() -> None:
+        save_config_file(
+            config=Config(
+                struct_version=1,
+                scenes=app_state.scenes,
+                selected_scene_index=app_state.selected_scene_index,
+            ),
+            path=config_file_path,
+        )
+
+    async def load_scene(index: int) -> None:
+        app_state.selected_scene_index = index
+
         raise NotImplementedError()
 
-    async def load_default_scene() -> None:
+    async def add_default_scene() -> None:
         _audio_input_devices = get_audio_input_devices()
         _desktop_dir = platformdirs.user_desktop_path()
 
@@ -97,7 +109,9 @@ async def flet_app_main(page: ft.Page) -> None:
             ),
         )
 
-        await load_scene(scene=_default_scene)
+        app_state.scenes.append(_default_scene)
+        default_scene_index = len(app_state.scenes) - 1
+        await load_scene(index=default_scene_index)
 
     async def on_mute_button_clicked(event: ft.ControlEvent) -> None:
         next_is_muted = not app_state.is_muted
