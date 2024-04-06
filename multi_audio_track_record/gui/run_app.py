@@ -95,7 +95,7 @@ async def flet_app_main(page: ft.Page) -> None:
 
     pause_button.on_click = on_pause_button_clicked
 
-    await page.add_async(
+    page.add(
         ft.Container(
             ft.Text(value="label"),
             expand=True,
