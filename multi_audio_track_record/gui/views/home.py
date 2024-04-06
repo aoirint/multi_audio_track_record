@@ -1,6 +1,7 @@
 import asyncio
 import tempfile
 from logging import getLogger
+from pathlib import Path
 
 import flet as ft
 import pyaudio
@@ -322,52 +323,60 @@ class Home(ft.View):  # type:ignore[misc]
 
         pyaudio_instance = pyaudio.PyAudio()
 
-        with tempfile.NamedTemporaryFile() as fp:
-            stream = pyaudio_instance.open(
-                input=True,
-                input_device_index=first_audio_input_device.portaudio_index,
-                rate=input_sampling_rate,
-                channels=channels,
-                format=format,
-                frames_per_buffer=num_frames,
-            )
-
-            total_byte_count = 0
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            temp_output_path = tmpdir_path / "0.bin"
             try:
-                while app_state.is_recording:
-                    chunk_bytes = stream.read(num_frames=num_frames)
-                    fp.write(chunk_bytes)
+                with temp_output_path.open("wb") as fp:
+                    try:
+                        audio_input_stream = pyaudio_instance.open(
+                            input=True,
+                            input_device_index=first_audio_input_device.portaudio_index,
+                            rate=input_sampling_rate,
+                            channels=channels,
+                            format=format,
+                            frames_per_buffer=num_frames,
+                        )
 
-                    total_byte_count += len(chunk_bytes)
-                    logger.info(f"[recording] total byte count: {total_byte_count}")
+                        total_byte_count = 0
 
-                    await asyncio.sleep(0.01)
+                        while app_state.is_recording:
+                            chunk_bytes = audio_input_stream.read(num_frames=num_frames)
+                            fp.write(chunk_bytes)
+
+                            total_byte_count += len(chunk_bytes)
+                            logger.info(
+                                f"[recording] total byte count: {total_byte_count}"
+                            )
+
+                            await asyncio.sleep(0.01)
+                    finally:
+                        audio_input_stream.close()
+
+                output_file = "work/output.m4a"
+                cmd = [
+                    "ffmpeg",
+                    "-y",
+                    "-f",
+                    "f32le",
+                    "-ar",
+                    str(input_sampling_rate),
+                    "-ac",
+                    str(channels),
+                    "-i",
+                    str(temp_output_path.resolve()),
+                    "-c:a",
+                    "aac",  # Native FFmpeg AAC Encoder
+                    "-b:a",
+                    "160k",
+                    output_file,
+                ]
+                proc = await asyncio.create_subprocess_exec(
+                    cmd[0],
+                    *cmd[1:],
+                )
+
+                return_code = await proc.wait()
+                logger.info(f"FFmpeg return code: {return_code}")
             finally:
-                stream.close()
-
-            fp.flush()
-
-            output_file = "work/output.m4a"
-            cmd = [
-                "ffmpeg",
-                "-f",
-                "f32le",
-                "-ar",
-                str(input_sampling_rate),
-                "-ac",
-                str(channels),
-                "-i",
-                fp.name,
-                "-c:a",
-                "aac",  # Native FFmpeg AAC Encoder
-                "-b:a",
-                "160k",
-                output_file,
-            ]
-            proc = await asyncio.create_subprocess_exec(
-                cmd[0],
-                *cmd[1:],
-            )
-
-            return_code = await proc.wait()
-            logger.info(f"FFmpeg return code: {return_code}")
+                temp_output_path.unlink(missing_ok=True)
