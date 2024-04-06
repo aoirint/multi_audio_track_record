@@ -1,5 +1,8 @@
 import asyncio
+import math
+import struct
 import tempfile
+import traceback
 from logging import getLogger
 from pathlib import Path
 
@@ -305,78 +308,113 @@ class Home(ft.View):  # type:ignore[misc]
         )
 
     async def main_task(self) -> None:
-        await self.load_scene(index=0)
+        try:
+            await self.load_scene(index=0)
+        except Exception:
+            logger.error(traceback.format_exc())
+            raise
 
     async def record_task(self) -> None:
-        app_state = self.app_state
+        try:
+            app_state = self.app_state
 
-        selected_scene_index = self.app_state.selected_scene_index
-        assert selected_scene_index is not None
-        scene = self.app_state.scenes[selected_scene_index]
+            selected_scene_index = self.app_state.selected_scene_index
+            assert selected_scene_index is not None
+            scene = self.app_state.scenes[selected_scene_index]
 
-        first_audio_input_device = scene.devices[0]
+            first_audio_input_device = scene.devices[0]
 
-        input_sampling_rate = 44100
-        channels = 1
-        format = pyaudio.paFloat32
-        num_frames = 1024
+            input_sampling_rate = 44100
+            channels = 1
+            format = pyaudio.paFloat32
+            num_frames = 1024
 
-        pyaudio_instance = pyaudio.PyAudio()
+            pyaudio_instance = pyaudio.PyAudio()
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmpdir_path = Path(tmpdir)
-            temp_output_path = tmpdir_path / "0.bin"
-            try:
-                with temp_output_path.open("wb") as fp:
-                    try:
-                        audio_input_stream = pyaudio_instance.open(
-                            input=True,
-                            input_device_index=first_audio_input_device.portaudio_index,
-                            rate=input_sampling_rate,
-                            channels=channels,
-                            format=format,
-                            frames_per_buffer=num_frames,
-                        )
-
-                        total_byte_count = 0
-
-                        while app_state.is_recording:
-                            chunk_bytes = audio_input_stream.read(num_frames=num_frames)
-                            fp.write(chunk_bytes)
-
-                            total_byte_count += len(chunk_bytes)
-                            logger.info(
-                                f"[recording] total byte count: {total_byte_count}"
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tmpdir_path = Path(tmpdir)
+                temp_output_path = tmpdir_path / "0.bin"
+                try:
+                    with temp_output_path.open("wb") as fp:
+                        try:
+                            audio_input_stream = pyaudio_instance.open(
+                                input=True,
+                                input_device_index=first_audio_input_device.portaudio_index,
+                                rate=input_sampling_rate,
+                                channels=channels,
+                                format=format,
+                                frames_per_buffer=num_frames,
                             )
 
-                            await asyncio.sleep(0.01)
-                    finally:
-                        audio_input_stream.close()
+                            total_byte_count = 0
 
-                output_file = "work/output.m4a"
-                cmd = [
-                    "ffmpeg",
-                    "-y",
-                    "-f",
-                    "f32le",
-                    "-ar",
-                    str(input_sampling_rate),
-                    "-ac",
-                    str(channels),
-                    "-i",
-                    str(temp_output_path.resolve()),
-                    "-c:a",
-                    "aac",  # Native FFmpeg AAC Encoder
-                    "-b:a",
-                    "160k",
-                    output_file,
-                ]
-                proc = await asyncio.create_subprocess_exec(
-                    cmd[0],
-                    *cmd[1:],
-                )
+                            while app_state.is_recording:
+                                if not audio_input_stream.get_read_available():
+                                    logger.info("waiting")
+                                    await asyncio.sleep(0.01)
+                                    continue
 
-                return_code = await proc.wait()
-                logger.info(f"FFmpeg return code: {return_code}")
-            finally:
-                temp_output_path.unlink(missing_ok=True)
+                                chunk_bytes = audio_input_stream.read(
+                                    num_frames=num_frames
+                                )
+                                fp.write(chunk_bytes)
+
+                                total_byte_count += len(chunk_bytes)
+
+                                # 先頭 4 bytes (f32le)
+                                first_float_bytes = chunk_bytes[:4]
+                                first_float_value: float = struct.unpack(
+                                    "<f",
+                                    first_float_bytes,
+                                )[0]
+
+                                decibel_minimum_limit = -60
+                                try:
+                                    first_float_decibel_value = max(
+                                        20 * math.log10(first_float_value),
+                                        decibel_minimum_limit,
+                                    )
+                                except ValueError:
+                                    # ValueError: math domain error if first_float_value ~ 0.0
+                                    first_float_decibel_value = decibel_minimum_limit
+
+                                logger.info(
+                                    f"[recording] {total_byte_count=} "
+                                    f"({first_float_decibel_value=} dB)"
+                                )
+
+                                await asyncio.sleep(0.01)
+                        finally:
+                            audio_input_stream.close()
+                            logger.info("audio_input_stream closed")
+
+                    output_file = "work/output.m4a"
+                    cmd = [
+                        "ffmpeg",
+                        "-y",
+                        "-f",
+                        "f32le",
+                        "-ar",
+                        str(input_sampling_rate),
+                        "-ac",
+                        str(channels),
+                        "-i",
+                        str(temp_output_path.resolve()),
+                        "-c:a",
+                        "aac",  # Native FFmpeg AAC Encoder
+                        "-b:a",
+                        "160k",
+                        output_file,
+                    ]
+                    proc = await asyncio.create_subprocess_exec(
+                        cmd[0],
+                        *cmd[1:],
+                    )
+
+                    return_code = await proc.wait()
+                    logger.info(f"FFmpeg return code: {return_code}")
+                finally:
+                    temp_output_path.unlink(missing_ok=True)
+        except Exception:
+            logger.error(traceback.format_exc())
+            raise
