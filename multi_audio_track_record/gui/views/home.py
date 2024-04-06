@@ -39,6 +39,20 @@ class Home(ft.View):  # type:ignore[misc]
             on_click=self.on_add_scene_button_clicked,
         )
 
+        scene_options: list[ft.dropdown.Option] = []
+        for scene_index, scene in enumerate(app_state.scenes):
+            scene_options.append(
+                ft.dropdown.Option(
+                    key=str(scene_index),
+                    text=scene.name,
+                ),
+            )
+
+        scene_dropdown = ft.Dropdown(
+            value="0" if len(scene_options) > 0 else None,
+            options=scene_options,
+        )
+
         add_audio_input_device_button = ft.IconButton(
             icon=ft.icons.ADD,
             icon_size=24,
@@ -129,25 +143,37 @@ class Home(ft.View):  # type:ignore[misc]
                 controls=[
                     ft.Column(
                         controls=[
-                            ft.Text(value="シーン"),
-                            add_scene_button,
-                            ft.Text(value="（未実装）"),
+                            ft.Row(
+                                controls=[
+                                    ft.Text(value="シーン"),
+                                    add_scene_button,
+                                ],
+                            ),
+                            scene_dropdown,
                         ],
                     ),
                     ft.Row(
                         controls=[
                             ft.Column(
                                 controls=[
-                                    ft.Text(value="音声入力デバイス"),
-                                    add_audio_input_device_button,
+                                    ft.Row(
+                                        controls=[
+                                            ft.Text(value="音声入力デバイス"),
+                                            add_audio_input_device_button,
+                                        ],
+                                    ),
                                     ft.Text(value="（未実装）"),
                                 ],
                                 expand=True,
                             ),
                             ft.Column(
                                 controls=[
-                                    ft.Text(value="トラック"),
-                                    add_track_button,
+                                    ft.Row(
+                                        controls=[
+                                            ft.Text(value="トラック"),
+                                            add_track_button,
+                                        ],
+                                    ),
                                     ft.Text(value="（未実装）"),
                                 ],
                                 expand=True,
