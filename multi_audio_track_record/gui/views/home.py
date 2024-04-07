@@ -3,6 +3,7 @@ import math
 import struct
 import tempfile
 import traceback
+from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
 
@@ -349,6 +350,10 @@ class Home(ft.View):  # type:ignore[misc]
             raise
 
     async def record_task(self) -> None:
+        app_state = self.app_state
+
+        app_state.recording_started_at = datetime.now(tz=timezone.utc)
+
         try:
             selected_scene_index = self.app_state.selected_scene_index
             assert selected_scene_index is not None
@@ -377,7 +382,22 @@ class Home(ft.View):  # type:ignore[misc]
                 try:
                     # TODO: use output dir from scene config
                     # TODO: choice output file extension (m4a, mp4) for VLC compatibility
-                    output_file = "work/output.m4a"
+                    recording_started_at = app_state.recording_started_at
+                    timestamp = (
+                        recording_started_at
+                        if recording_started_at is not None
+                        else datetime.now(tz=timezone.utc)
+                    )
+
+                    # e.g. 2024-04-01T00-00-00Z
+                    timestamp_string = (
+                        timestamp.astimezone(tz=timezone.utc)
+                        .isoformat(timespec="seconds")
+                        .replace(":", "-")
+                    )
+                    output_path = Path(scene.output_dir) / f"rec_{timestamp_string}.m4a"
+                    output_path.parent.mkdir(parents=True, exist_ok=True)
+
                     cmd = [
                         "ffmpeg",
                         "-y",
@@ -441,7 +461,7 @@ class Home(ft.View):  # type:ignore[misc]
                         ]
 
                     cmd += [
-                        output_file,
+                        str(output_path.resolve()),
                     ]
 
                     proc = await asyncio.create_subprocess_exec(

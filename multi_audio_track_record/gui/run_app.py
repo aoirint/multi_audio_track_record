@@ -89,6 +89,7 @@ async def flet_app_main(page: ft.Page) -> None:
         scenes=_scenes,
         selected_scene_index=0 if len(_scenes) > 0 else None,
         is_recording=False,
+        recording_started_at=None,
         is_paused=False,
         is_muted=False,
     )

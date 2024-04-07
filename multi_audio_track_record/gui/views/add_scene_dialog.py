@@ -4,7 +4,7 @@ from logging import getLogger
 import flet as ft
 import platformdirs
 
-from ...audio_input_device_manager import AudioInputDevice, AudioInputDeviceManager
+from ...audio_input_device_manager import AudioInputDeviceManager
 from ...config_store_manager import ConfigStoreManager
 from ...scene import Scene, SceneDevice, SceneTrack
 from ..app_state import AppState
