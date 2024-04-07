@@ -302,7 +302,7 @@ class Home(ft.View):  # type:ignore[misc]
         for device_index, device in enumerate(scene.devices):
             device_mute_button = ft.IconButton(icon=ft.icons.MIC, icon_size=20)
             device_edit_button = ft.IconButton(icon=ft.icons.EDIT, icon_size=20)
-            device_volume_progress_bar = ft.ProgressBar(bar_height=4)
+            device_volume_progress_bar = ft.ProgressBar(value=0, bar_height=4)
 
             audio_input_device_list_view.controls.append(
                 ft.Container(
@@ -357,7 +357,7 @@ class Home(ft.View):  # type:ignore[misc]
 
         for track_index, track in enumerate(scene.tracks):
             track_edit_button = ft.IconButton(icon=ft.icons.EDIT, icon_size=20)
-            track_volume_progress_bar = ft.ProgressBar(bar_height=4)
+            track_volume_progress_bar = ft.ProgressBar(value=0, bar_height=4)
 
             track_list_view.controls.append(
                 ft.Container(
