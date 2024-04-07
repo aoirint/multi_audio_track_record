@@ -144,5 +144,7 @@ class AddAudioInputDeviceDialog(ft.View):  # type:ignore[misc]
             ),
         )
 
+        # TODO: save config
+
         page.views.pop()
         page.go("/")
