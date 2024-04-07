@@ -327,8 +327,9 @@ class Home(ft.View):  # type:ignore[misc]
         self,
         event: ft.ControlEvent,
     ) -> None:
-        # TDDO: add track dialog
-        logger.info("on_add_track_button_clicked")
+        page = self.page
+
+        page.go("/add_track")
 
     async def save_config(self) -> None:
         config_store_manager = self.config_store_manager
