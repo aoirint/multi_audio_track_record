@@ -344,17 +344,20 @@ class Home(ft.View):  # type:ignore[misc]
 
     async def main_task(self) -> None:
         try:
-            await self.load_scene(index=0)
+            app_state = self.app_state
+            selected_scene_index = app_state.selected_scene_index
+
+            await self.load_scene(index=selected_scene_index)
         except Exception:
             logger.error(traceback.format_exc())
             raise
 
     async def record_task(self) -> None:
-        app_state = self.app_state
-
-        app_state.recording_started_at = datetime.now(tz=timezone.utc)
-
         try:
+            app_state = self.app_state
+
+            app_state.recording_started_at = datetime.now(tz=timezone.utc)
+
             selected_scene_index = self.app_state.selected_scene_index
             assert selected_scene_index is not None
             scene = self.app_state.scenes[selected_scene_index]
