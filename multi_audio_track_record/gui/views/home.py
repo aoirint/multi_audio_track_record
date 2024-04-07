@@ -274,19 +274,85 @@ class Home(ft.View):  # type:ignore[misc]
 
         audio_input_device_list_view.controls.clear()
         for device in scene.devices:
+            device_mute_button = ft.IconButton(icon=ft.icons.MIC, icon_size=20)
+            device_edit_button = ft.IconButton(icon=ft.icons.EDIT, icon_size=20)
+
             audio_input_device_list_view.controls.append(
-                ft.Row(
-                    controls=[
-                        ft.Icon(name=ft.icons.MIC, size=16, color=ft.colors.ON_SURFACE),
-                        ft.Text(f"{device.portaudio_name}"),
-                        ft.IconButton(icon=ft.icons.MIC),
-                    ],
+                ft.Container(
+                    content=ft.Row(
+                        controls=[
+                            ft.Row(
+                                controls=[
+                                    ft.Icon(
+                                        name=ft.icons.MIC,
+                                        size=16,
+                                        color=ft.colors.ON_SURFACE,
+                                    ),
+                                    ft.Text(
+                                        value=f"{device.portaudio_name}",
+                                        overflow=ft.TextOverflow.FADE,
+                                        no_wrap=True,
+                                        expand=True,
+                                    ),
+                                ],
+                                expand=True,
+                            ),
+                            ft.Row(
+                                controls=[
+                                    device_mute_button,
+                                    device_edit_button,
+                                ],
+                            ),
+                        ],
+                        spacing=0,
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    ),
+                    bgcolor=ft.colors.ON_SECONDARY,
+                    alignment=ft.alignment.center,
+                    padding=16,
+                    height=70,
                 ),
             )
 
         track_list_view.controls.clear()
         for track in scene.tracks:
-            track_list_view.controls.append(ft.Text(f"{track.name}"))
+            track_edit_button = ft.IconButton(icon=ft.icons.EDIT, icon_size=20)
+
+            track_list_view.controls.append(
+                ft.Container(
+                    content=ft.Row(
+                        controls=[
+                            ft.Row(
+                                controls=[
+                                    ft.Icon(
+                                        name=ft.icons.MULTITRACK_AUDIO,
+                                        size=16,
+                                        color=ft.colors.ON_SURFACE,
+                                    ),
+                                    ft.Text(
+                                        value=f"{track.name}",
+                                        overflow=ft.TextOverflow.FADE,
+                                        no_wrap=True,
+                                        expand=True,
+                                    ),
+                                ],
+                                expand=True,
+                            ),
+                            ft.Row(
+                                controls=[
+                                    track_edit_button,
+                                ],
+                            ),
+                        ],
+                        spacing=0,
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    ),
+                    bgcolor=ft.colors.ON_SECONDARY,
+                    alignment=ft.alignment.center,
+                    padding=16,
+                    height=70,
+                ),
+            )
 
         app_state.is_recording = False
         app_state.is_paused = False
