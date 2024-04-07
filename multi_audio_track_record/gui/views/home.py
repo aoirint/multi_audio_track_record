@@ -20,6 +20,9 @@ logger = getLogger(__name__)
 class Home(ft.View):  # type:ignore[misc]
     main_task_future: asyncio.Future | None
     record_task_future: asyncio.Future | None
+
+    scene_dropdown: ft.Dropdown | None
+
     audio_input_device_list_view: ft.ListView | None
 
     def __init__(
@@ -35,6 +38,9 @@ class Home(ft.View):  # type:ignore[misc]
 
         self.main_task_future = None
         self.record_task_future = None
+
+        self.scene_dropdown = None
+
         self.audio_input_device_list_view = None
 
         self.app_state = app_state
@@ -66,7 +72,9 @@ class Home(ft.View):  # type:ignore[misc]
                 str(selected_scene_index) if selected_scene_index is not None else None
             ),
             options=scene_options,
+            on_change=self.on_scene_dropdown_change,
         )
+        self.scene_dropdown = scene_dropdown
 
         add_audio_input_device_button = ft.IconButton(
             icon=ft.icons.ADD,
@@ -273,6 +281,7 @@ class Home(ft.View):  # type:ignore[misc]
                 ),
             )
 
+        track_list_view.controls.clear()
         for track in scene.tracks:
             track_list_view.controls.append(ft.Text(f"{track.name}"))
 
@@ -289,6 +298,21 @@ class Home(ft.View):  # type:ignore[misc]
         page = self.page
 
         page.go("/add_scene")
+
+    async def on_scene_dropdown_change(
+        self,
+        event: ft.ControlEvent,
+    ) -> None:
+        scene_dropdown = self.scene_dropdown
+        assert scene_dropdown is not None
+
+        selected_index_string = scene_dropdown.value
+        assert selected_index_string is not None
+
+        # TODO: 録音中のシーン切り替えを禁止する
+
+        selected_index = int(selected_index_string)
+        await self.load_scene(index=selected_index)
 
     async def on_add_audio_input_device_button_clicked(
         self,
