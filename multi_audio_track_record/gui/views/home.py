@@ -393,6 +393,7 @@ class Home(ft.View):  # type:ignore[misc]
                     timestamp_string = (
                         timestamp.astimezone(tz=timezone.utc)
                         .isoformat(timespec="seconds")
+                        .replace("+00:00", "Z")
                         .replace(":", "-")
                     )
                     output_path = Path(scene.output_dir) / f"rec_{timestamp_string}.m4a"
