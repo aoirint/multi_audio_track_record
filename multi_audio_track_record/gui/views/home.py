@@ -346,7 +346,9 @@ class Home(ft.View):  # type:ignore[misc]
     async def main_task(self) -> None:
         try:
             app_state = self.app_state
+
             selected_scene_index = app_state.selected_scene_index
+            assert selected_scene_index is not None
 
             await self.load_scene(index=selected_scene_index)
         except Exception:
