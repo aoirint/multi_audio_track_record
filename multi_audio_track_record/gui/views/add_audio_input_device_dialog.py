@@ -136,6 +136,7 @@ class AddAudioInputDeviceDialog(ft.View):  # type:ignore[misc]
                 portaudio_host_api_type=audio_input_device.portaudio_host_api_type,
                 portaudio_host_api_index=audio_input_device.portaudio_host_api_index,
                 portaudio_host_api_device_index=audio_input_device.portaudio_host_api_device_index,
+                sampling_rate=int(audio_input_device.default_sampling_rate),
                 channels=audio_input_device.max_channels,
                 gain=0,
                 muted=False,

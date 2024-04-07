@@ -11,6 +11,7 @@ class SceneDevice(BaseModel):
     portaudio_host_api_type: int
     portaudio_host_api_index: int
     portaudio_host_api_device_index: int
+    sampling_rate: int
     channels: int
     gain: float
     muted: bool

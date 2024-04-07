@@ -9,6 +9,7 @@ class AudioInputDevice:
     portaudio_host_api_type: int
     portaudio_host_api_index: int
     portaudio_host_api_device_index: int
+    default_sampling_rate: float
     max_channels: int
 
 

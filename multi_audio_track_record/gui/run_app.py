@@ -38,6 +38,9 @@ async def create_default_scene(
                     portaudio_host_api_type=_default_audio_input_device.portaudio_host_api_type,
                     portaudio_host_api_index=_default_audio_input_device.portaudio_host_api_index,
                     portaudio_host_api_device_index=_default_audio_input_device.portaudio_host_api_device_index,
+                    sampling_rate=int(
+                        _default_audio_input_device.default_sampling_rate
+                    ),
                     channels=_default_audio_input_device.max_channels,
                     gain=0,
                     muted=False,

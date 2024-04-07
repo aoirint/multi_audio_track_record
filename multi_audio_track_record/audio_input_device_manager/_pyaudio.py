@@ -96,6 +96,7 @@ class AudioInputDeviceManagerPyAudio(AudioInputDeviceManager):
                     portaudio_host_api_type=host_api_info.type,
                     portaudio_host_api_index=host_api_info.index,
                     portaudio_host_api_device_index=host_api_device_index,
+                    default_sampling_rate=device_info.default_sample_rate,
                     max_channels=device_info.max_input_channels,
                 )
             )

@@ -11,6 +11,7 @@ import pyaudio
 
 from ...audio_input_device_manager import AudioInputDeviceManager
 from ...config_store_manager import Config, ConfigStoreManager
+from ...scene import SceneDevice
 from ..app_state import AppState
 
 logger = getLogger(__name__)
@@ -316,113 +317,98 @@ class Home(ft.View):  # type:ignore[misc]
 
     async def record_task(self) -> None:
         try:
-            app_state = self.app_state
-
             selected_scene_index = self.app_state.selected_scene_index
             assert selected_scene_index is not None
             scene = self.app_state.scenes[selected_scene_index]
 
-            first_audio_input_device = scene.devices[0]
-
-            first_track = scene.tracks[0]
-            first_track_name = first_track.name
-
-            input_sampling_rate = 44100
-            channels = 1
-            format = pyaudio.paFloat32
-            num_frames = 1024
+            devices = scene.devices
+            tracks = scene.tracks
 
             pyaudio_instance = pyaudio.PyAudio()
 
             with tempfile.TemporaryDirectory() as tmpdir:
                 tmpdir_path = Path(tmpdir)
-                temp_output_path = tmpdir_path / "0.bin"
+
+                async with asyncio.TaskGroup() as task_group:
+                    for device_index, device in enumerate(devices):
+                        temp_output_path = tmpdir_path / f"{device_index}.bin"
+
+                        task_group.create_task(
+                            self.device_record_task(
+                                pyaudio_instance=pyaudio_instance,
+                                scene_device=device,
+                                temp_output_path=temp_output_path,
+                            ),
+                        )
+
                 try:
-                    with temp_output_path.open("wb") as fp:
-                        try:
-                            audio_input_stream = pyaudio_instance.open(
-                                input=True,
-                                input_device_index=first_audio_input_device.portaudio_index,
-                                rate=input_sampling_rate,
-                                channels=channels,
-                                format=format,
-                                frames_per_buffer=num_frames,
-                            )
-
-                            total_byte_count = 0
-
-                            while app_state.is_recording:
-                                if not audio_input_stream.get_read_available():
-                                    logger.info("waiting")
-                                    await asyncio.sleep(0.01)
-                                    continue
-
-                                chunk_bytes = audio_input_stream.read(
-                                    num_frames=num_frames
-                                )
-
-                                is_muted = (
-                                    app_state.is_muted or first_audio_input_device.muted
-                                )
-                                if not is_muted:
-                                    fp.write(chunk_bytes)
-                                else:
-                                    # ミュート中は -60 dB 扱い
-                                    fp.write(struct.pack("<f", 1e-3) * len(chunk_bytes))
-
-                                total_byte_count += len(chunk_bytes)
-
-                                # 先頭 4 bytes (f32le)
-                                first_float_bytes = chunk_bytes[:4]
-                                first_float_value: float = struct.unpack(
-                                    "<f",
-                                    first_float_bytes,
-                                )[0]
-
-                                decibel_minimum_limit = -60
-                                try:
-                                    first_float_decibel_value = max(
-                                        20 * math.log10(first_float_value),
-                                        decibel_minimum_limit,
-                                    )
-                                except ValueError:
-                                    # ValueError: math domain error if first_float_value ~ 0.0
-                                    first_float_decibel_value = decibel_minimum_limit
-
-                                logger.info(
-                                    f"[recording] {total_byte_count=} "
-                                    f"({first_float_decibel_value=} dB)"
-                                )
-
-                                await asyncio.sleep(0.01)
-                        finally:
-                            audio_input_stream.close()
-                            logger.info("audio_input_stream closed")
-
                     output_file = "work/output.m4a"
                     cmd = [
                         "ffmpeg",
                         "-y",
+                    ]
+
+                    # 0番目の音声入力を無音にする
+                    cmd += [
                         "-f",
-                        "f32le",
-                        "-ar",
-                        str(input_sampling_rate),
-                        "-ac",
-                        str(channels),
+                        "lavfi",
                         "-i",
-                        str(temp_output_path.resolve()),
-                        "-map",
-                        "0:a:0",
-                        "-c:a",
-                        "aac",  # Native FFmpeg AAC Encoder
-                        "-b:a",
-                        "160k",
-                        "-metadata:s:a:0",
-                        f"title={first_track_name}",  # .mp4
-                        "-metadata:s:a:0",
-                        f"handler_name={first_track_name}",  # .m4a (but VLC not working)
+                        "anullsrc",
+                    ]
+
+                    # 各音声入力デバイスを1番目以降の音声入力にする
+                    for device_index, device in enumerate(devices):
+                        temp_output_path = tmpdir_path / f"{device_index}.bin"
+
+                        cmd += [
+                            "-f",
+                            "f32le",
+                            "-ar",
+                            str(device.sampling_rate),
+                            "-ac",
+                            str(device.channels),
+                            "-i",
+                            str(temp_output_path.resolve()),
+                        ]
+
+                    for track_index, track in enumerate(tracks):
+                        track_device_input_indexes: list[int] = []
+
+                        for device_index, device in enumerate(devices):
+                            if track_index in device.tracks:
+                                # 音声入力デバイスの入力は1番目以降
+                                track_device_input_indexes.append(1 + device_index)
+
+                        if len(track_device_input_indexes) == 0:
+                            # トラックに入力される音声入力デバイスが0の場合、入力番号0の無音を入力する
+                            track_device_input_indexes.append(0)
+
+                        track_device_source_string = ""
+                        for track_device_index in track_device_input_indexes:
+                            track_device_source_string += f"[{track_device_index}:a:0]"
+
+                        cmd += [
+                            "-filter_complex",
+                            f"{track_device_source_string}amix=inputs={len(track_device_input_indexes)}[t{track_index}]",
+                        ]
+
+                        cmd += [
+                            "-map",
+                            f"[t{track_index}]",
+                            "-c:a",
+                            "aac",  # Native FFmpeg AAC Encoder
+                            "-b:a",
+                            "160k",
+                            "-metadata:s:a:0",
+                            f"title={track.name}",  # .mp4
+                            "-metadata:s:a:0",
+                            f"handler_name={track.name}",  # .m4a (but VLC not working)
+                        ]
+
+                    cmd += [
                         output_file,
                     ]
+
                     proc = await asyncio.create_subprocess_exec(
                         cmd[0],
                         *cmd[1:],
@@ -435,3 +421,72 @@ class Home(ft.View):  # type:ignore[misc]
         except Exception:
             logger.error(traceback.format_exc())
             raise
+
+    async def device_record_task(
+        self,
+        pyaudio_instance: pyaudio.PyAudio,
+        scene_device: SceneDevice,
+        temp_output_path: Path,
+    ) -> None:
+        app_state = self.app_state
+
+        channels = 1
+        format = pyaudio.paFloat32
+        num_frames = 1024
+
+        with temp_output_path.open("wb") as fp:
+            total_byte_count = 0
+
+            audio_input_stream = pyaudio_instance.open(
+                input=True,
+                input_device_index=scene_device.portaudio_index,
+                rate=scene_device.sampling_rate,
+                channels=channels,
+                format=format,
+                frames_per_buffer=num_frames,
+            )
+
+            try:
+                while app_state.is_recording:
+                    if not audio_input_stream.get_read_available():
+                        logger.info("waiting")
+                        await asyncio.sleep(0.01)
+                        continue
+
+                    chunk_bytes = audio_input_stream.read(num_frames=num_frames)
+
+                    is_muted = app_state.is_muted or scene_device.muted
+                    if not is_muted:
+                        fp.write(chunk_bytes)
+                    else:
+                        # ミュート中は -60 dB 扱い
+                        fp.write(struct.pack("<f", 1e-3) * len(chunk_bytes))
+
+                    total_byte_count += len(chunk_bytes)
+
+                    # 先頭 4 bytes (f32le)
+                    first_float_bytes = chunk_bytes[:4]
+                    first_float_value: float = struct.unpack(
+                        "<f",
+                        first_float_bytes,
+                    )[0]
+
+                    decibel_minimum_limit = -60
+                    try:
+                        first_float_decibel_value = max(
+                            20 * math.log10(first_float_value),
+                            decibel_minimum_limit,
+                        )
+                    except ValueError:
+                        # ValueError: math domain error if first_float_value ~ 0.0
+                        first_float_decibel_value = decibel_minimum_limit
+
+                    logger.info(
+                        f"[recording] {total_byte_count=} "
+                        f"({first_float_decibel_value=} dB)"
+                    )
+
+                    await asyncio.sleep(0.01)
+            finally:
+                audio_input_stream.close()
+                logger.info("audio_input_stream closed")
