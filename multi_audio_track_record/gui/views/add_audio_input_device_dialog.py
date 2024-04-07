@@ -129,6 +129,8 @@ class AddAudioInputDeviceDialog(ft.View):  # type:ignore[misc]
 
         assert app_state.selected_scene_index is not None
         scene = app_state.scenes[app_state.selected_scene_index]
+
+        # TODO: add device to all tracks
         scene.devices.append(
             SceneDevice(
                 portaudio_name=audio_input_device.portaudio_name,
