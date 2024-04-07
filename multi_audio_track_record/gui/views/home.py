@@ -3,6 +3,7 @@ import math
 import struct
 import tempfile
 import traceback
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
@@ -18,6 +19,19 @@ from ..app_state import AppState
 logger = getLogger(__name__)
 
 
+@dataclass
+class AudioInputDeviceControls:
+    mute_button: ft.IconButton
+    edit_button: ft.IconButton
+    volume_progress_bar: ft.ProgressBar
+
+
+@dataclass
+class TrackControls:
+    edit_button: ft.IconButton
+    volume_progress_bar: ft.ProgressBar
+
+
 class Home(ft.View):  # type:ignore[misc]
     main_task_future: asyncio.Future | None
     record_task_future: asyncio.Future | None
@@ -25,7 +39,10 @@ class Home(ft.View):  # type:ignore[misc]
     scene_dropdown: ft.Dropdown | None
 
     audio_input_device_list_view: ft.ListView | None
+    audio_input_device_controls_dict: dict[int, AudioInputDeviceControls]
+
     track_list_view: ft.ListView | None
+    track_controls_dict: dict[int, TrackControls]
 
     def __init__(
         self,
@@ -44,7 +61,10 @@ class Home(ft.View):  # type:ignore[misc]
         self.scene_dropdown = None
 
         self.audio_input_device_list_view = None
+        self.audio_input_device_controls_dict = {}
+
         self.track_list_view = None
+        self.track_controls_dict = {}
 
         self.app_state = app_state
         self.audio_input_device_manager = audio_input_device_manager
@@ -261,17 +281,28 @@ class Home(ft.View):  # type:ignore[misc]
     async def load_scene(self, index: int) -> None:
         app_state = self.app_state
         page = self.page
-        audio_input_device_list_view = self.audio_input_device_list_view
-        track_list_view = self.track_list_view
 
+        audio_input_device_list_view = self.audio_input_device_list_view
         assert audio_input_device_list_view is not None
+
+        audio_input_device_controls_dict = self.audio_input_device_controls_dict
+        assert audio_input_device_controls_dict is not None
+
+        track_list_view = self.track_list_view
+        assert track_list_view is not None
+
+        track_controls_dict = self.track_controls_dict
+        assert track_controls_dict is not None
 
         scene = app_state.scenes[index]
 
         audio_input_device_list_view.controls.clear()
-        for device in scene.devices:
+        audio_input_device_controls_dict.clear()
+
+        for device_index, device in enumerate(scene.devices):
             device_mute_button = ft.IconButton(icon=ft.icons.MIC, icon_size=20)
             device_edit_button = ft.IconButton(icon=ft.icons.EDIT, icon_size=20)
+            device_volume_progress_bar = ft.ProgressBar(bar_height=4)
 
             audio_input_device_list_view.controls.append(
                 ft.Container(
@@ -284,13 +315,20 @@ class Home(ft.View):  # type:ignore[misc]
                                         size=16,
                                         color=ft.colors.ON_SURFACE,
                                     ),
-                                    ft.Text(
-                                        value=f"{device.portaudio_name}",
-                                        overflow=ft.TextOverflow.FADE,
-                                        no_wrap=True,
+                                    ft.Column(
+                                        controls=[
+                                            ft.Text(
+                                                value=f"{device.portaudio_name}",
+                                                overflow=ft.TextOverflow.FADE,
+                                                no_wrap=True,
+                                                expand=True,
+                                            ),
+                                            device_volume_progress_bar,
+                                        ],
                                         expand=True,
                                     ),
                                 ],
+                                spacing=20,
                                 expand=True,
                             ),
                             ft.Row(
@@ -300,8 +338,6 @@ class Home(ft.View):  # type:ignore[misc]
                                 ],
                             ),
                         ],
-                        spacing=0,
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     ),
                     bgcolor=ft.colors.ON_SECONDARY,
                     alignment=ft.alignment.center,
@@ -310,9 +346,18 @@ class Home(ft.View):  # type:ignore[misc]
                 ),
             )
 
+            audio_input_device_controls_dict[device_index] = AudioInputDeviceControls(
+                mute_button=device_mute_button,
+                edit_button=device_edit_button,
+                volume_progress_bar=device_volume_progress_bar,
+            )
+
         track_list_view.controls.clear()
-        for track in scene.tracks:
+        track_controls_dict.clear()
+
+        for track_index, track in enumerate(scene.tracks):
             track_edit_button = ft.IconButton(icon=ft.icons.EDIT, icon_size=20)
+            track_volume_progress_bar = ft.ProgressBar(bar_height=4)
 
             track_list_view.controls.append(
                 ft.Container(
@@ -325,13 +370,20 @@ class Home(ft.View):  # type:ignore[misc]
                                         size=16,
                                         color=ft.colors.ON_SURFACE,
                                     ),
-                                    ft.Text(
-                                        value=f"{track.name}",
-                                        overflow=ft.TextOverflow.FADE,
-                                        no_wrap=True,
+                                    ft.Column(
+                                        controls=[
+                                            ft.Text(
+                                                value=f"{track.name}",
+                                                overflow=ft.TextOverflow.FADE,
+                                                no_wrap=True,
+                                                expand=True,
+                                            ),
+                                            device_volume_progress_bar,
+                                        ],
                                         expand=True,
                                     ),
                                 ],
+                                spacing=20,
                                 expand=True,
                             ),
                             ft.Row(
@@ -340,14 +392,17 @@ class Home(ft.View):  # type:ignore[misc]
                                 ],
                             ),
                         ],
-                        spacing=0,
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     ),
                     bgcolor=ft.colors.ON_SECONDARY,
                     alignment=ft.alignment.center,
                     padding=16,
                     height=70,
                 ),
+            )
+
+            track_controls_dict[track_index] = TrackControls(
+                edit_button=track_edit_button,
+                volume_progress_bar=track_volume_progress_bar,
             )
 
         app_state.is_recording = False
