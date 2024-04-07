@@ -11,7 +11,7 @@ from ..audio_input_device_manager import (
 from ..config_store_manager import ConfigStoreManager, ConfigStoreManagerFile
 from ..scene import Scene, SceneDevice, SceneTrack
 from .app_state import AppState
-from .views import AddAudioInputDeviceDialog, Home
+from .views import AddAudioInputDeviceDialog, AddSceneDialog, Home
 
 logger = getLogger(__name__)
 
@@ -87,7 +87,7 @@ async def flet_app_main(page: ft.Page) -> None:
 
     app_state = AppState(
         scenes=_scenes,
-        selected_scene_index=None,
+        selected_scene_index=0 if len(_scenes) > 0 else None,
         is_recording=False,
         is_paused=False,
         is_muted=False,
@@ -99,6 +99,19 @@ async def flet_app_main(page: ft.Page) -> None:
             page.views.append(
                 Home(
                     route="/",
+                    app_state=app_state,
+                    audio_input_device_manager=audio_input_device_manager,
+                    config_store_manager=config_store_manager,
+                ),
+            )
+            logger.info(
+                f"on_route_change: route={page.route}, view_count={len(page.views)}"
+            )
+
+        elif page.route == "/add_scene":
+            page.views.append(
+                AddSceneDialog(
+                    route="/add_scene",
                     app_state=app_state,
                     audio_input_device_manager=audio_input_device_manager,
                     config_store_manager=config_store_manager,

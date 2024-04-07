@@ -60,8 +60,11 @@ class Home(ft.View):  # type:ignore[misc]
                 ),
             )
 
+        selected_scene_index = app_state.selected_scene_index
         scene_dropdown = ft.Dropdown(
-            value="0" if len(scene_options) > 0 else None,
+            value=(
+                str(selected_scene_index) if selected_scene_index is not None else None
+            ),
             options=scene_options,
         )
 
@@ -283,8 +286,9 @@ class Home(ft.View):  # type:ignore[misc]
         self,
         event: ft.ControlEvent,
     ) -> None:
-        # TDDO: add scene dialog
-        logger.info("on_add_scene_button_clicked")
+        page = self.page
+
+        page.go("/add_scene")
 
     async def on_add_audio_input_device_button_clicked(
         self,
