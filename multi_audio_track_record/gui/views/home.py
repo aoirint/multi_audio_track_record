@@ -25,6 +25,7 @@ class Home(ft.View):  # type:ignore[misc]
     scene_dropdown: ft.Dropdown | None
 
     audio_input_device_list_view: ft.ListView | None
+    track_list_view: ft.ListView | None
 
     def __init__(
         self,
@@ -43,6 +44,7 @@ class Home(ft.View):  # type:ignore[misc]
         self.scene_dropdown = None
 
         self.audio_input_device_list_view = None
+        self.track_list_view = None
 
         self.app_state = app_state
         self.audio_input_device_manager = audio_input_device_manager
