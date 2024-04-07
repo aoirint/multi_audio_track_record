@@ -91,7 +91,6 @@ class Home(ft.View):  # type:ignore[misc]
         audio_input_device_list_view = ft.ListView(
             expand=1,
             spacing=10,
-            auto_scroll=True,
         )
         self.audio_input_device_list_view = audio_input_device_list_view
 
@@ -104,7 +103,6 @@ class Home(ft.View):  # type:ignore[misc]
         track_list_view = ft.ListView(
             expand=1,
             spacing=10,
-            auto_scroll=True,
         )
         self.track_list_view = track_list_view
 
