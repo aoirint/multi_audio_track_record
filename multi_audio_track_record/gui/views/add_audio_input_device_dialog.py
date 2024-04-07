@@ -141,7 +141,7 @@ class AddAudioInputDeviceDialog(ft.View):  # type:ignore[misc]
                 sampling_rate=int(audio_input_device.default_sampling_rate),
                 channels=audio_input_device.max_channels,
                 gain=0,
-                muted=False,
+                is_muted=False,
                 tracks=[0],
             ),
         )

@@ -14,7 +14,7 @@ class SceneDevice(BaseModel):
     sampling_rate: int
     channels: int
     gain: float
-    muted: bool
+    is_muted: bool
     tracks: list[int]
 
 

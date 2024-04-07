@@ -455,7 +455,7 @@ class Home(ft.View):  # type:ignore[misc]
 
                     chunk_bytes = audio_input_stream.read(num_frames=num_frames)
 
-                    is_muted = app_state.is_muted or scene_device.muted
+                    is_muted = app_state.is_muted or scene_device.is_muted
                     if not is_muted:
                         fp.write(chunk_bytes)
                     else:

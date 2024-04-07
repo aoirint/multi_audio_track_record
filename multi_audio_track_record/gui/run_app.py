@@ -43,7 +43,7 @@ async def create_default_scene(
                     ),
                     channels=_default_audio_input_device.max_channels,
                     gain=0,
-                    muted=False,
+                    is_muted=False,
                     tracks=[0],
                 ),
             ]
