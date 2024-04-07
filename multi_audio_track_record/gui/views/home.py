@@ -283,6 +283,7 @@ class Home(ft.View):  # type:ignore[misc]
         self,
         event: ft.ControlEvent,
     ) -> None:
+        # TDDO: add scene dialog
         logger.info("on_add_scene_button_clicked")
 
     async def on_add_audio_input_device_button_clicked(
@@ -297,6 +298,7 @@ class Home(ft.View):  # type:ignore[misc]
         self,
         event: ft.ControlEvent,
     ) -> None:
+        # TDDO: add track dialog
         logger.info("on_add_track_button_clicked")
 
     async def save_config(self) -> None:
