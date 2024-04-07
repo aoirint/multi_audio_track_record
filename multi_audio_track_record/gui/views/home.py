@@ -71,6 +71,7 @@ class Home(ft.View):  # type:ignore[misc]
             on_click=self.on_add_audio_input_device_button_clicked,
         )
 
+        # TODO: show volume level of each input devices
         audio_input_device_list_view = ft.ListView(
             expand=1,
             spacing=10,
@@ -342,6 +343,8 @@ class Home(ft.View):  # type:ignore[misc]
                         )
 
                 try:
+                    # TODO: use output dir from scene config
+                    # TODO: choice output file extension (m4a, mp4) for VLC compatibility
                     output_file = "work/output.m4a"
                     cmd = [
                         "ffmpeg",
