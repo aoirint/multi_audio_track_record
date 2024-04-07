@@ -73,6 +73,7 @@ class Home(ft.View):  # type:ignore[misc]
 
         # TODO: show volume level of each input devices
         # TODO: mapping configuration of input devices and tracks
+        # TODO: switch muted status of each input devices
         audio_input_device_list_view = ft.ListView(
             expand=1,
             spacing=10,
