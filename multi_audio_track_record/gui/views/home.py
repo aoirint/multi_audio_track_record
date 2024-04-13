@@ -15,16 +15,10 @@ from ...audio_input_device_manager import AudioInputDeviceManager
 from ...config_store_manager import Config, ConfigStoreManager
 from ...scene import SceneDevice
 from ..app_state import AppState
+from ..controls.audio_input_device_list_panel import AudioInputDeviceListPanel
 from ..controls.scene_selection_panel import SceneSelectionPanel
 
 logger = getLogger(__name__)
-
-
-@dataclass
-class AudioInputDeviceControls:
-    mute_button: ft.IconButton
-    edit_button: ft.IconButton
-    volume_progress_bar: ft.ProgressBar
 
 
 @dataclass
@@ -38,9 +32,7 @@ class Home(ft.View):  # type:ignore[misc]
     record_task_future: asyncio.Future | None
 
     scene_panel: SceneSelectionPanel | None
-
-    audio_input_device_list_view: ft.ListView | None
-    audio_input_device_controls_dict: dict[int, AudioInputDeviceControls]
+    audio_input_device_list_panel: AudioInputDeviceListPanel | None
 
     track_list_view: ft.ListView | None
     track_controls_dict: dict[int, TrackControls]
@@ -60,9 +52,7 @@ class Home(ft.View):  # type:ignore[misc]
         self.record_task_future = None
 
         self.scene_panel = None
-
-        self.audio_input_device_list_view = None
-        self.audio_input_device_controls_dict = {}
+        self.audio_input_device_list_panel = None
 
         self.track_list_view = None
         self.track_controls_dict = {}
@@ -88,20 +78,13 @@ class Home(ft.View):  # type:ignore[misc]
         )
         self.scene_panel = scene_panel
 
-        add_audio_input_device_button = ft.IconButton(
-            icon=ft.icons.ADD,
-            icon_size=24,
-            on_click=self.on_add_audio_input_device_button_clicked,
+        audio_input_device_list_panel = AudioInputDeviceListPanel(
+            app_state=app_state,
+            audio_input_device_manager=audio_input_device_manager,
+            config_store_manager=config_store_manager,
+            expand=True,
         )
-
-        # TODO: show volume level of each input devices
-        # TODO: mapping configuration of input devices and tracks
-        # TODO: switch muted status of each input devices
-        audio_input_device_list_view = ft.ListView(
-            expand=1,
-            spacing=10,
-        )
-        self.audio_input_device_list_view = audio_input_device_list_view
+        self.audio_input_device_list_panel = audio_input_device_list_panel
 
         add_track_button = ft.IconButton(
             icon=ft.icons.ADD,
@@ -205,18 +188,7 @@ class Home(ft.View):  # type:ignore[misc]
                     scene_panel,
                     ft.Row(
                         controls=[
-                            ft.Column(
-                                controls=[
-                                    ft.Row(
-                                        controls=[
-                                            ft.Text(value="音声入力デバイス"),
-                                            add_audio_input_device_button,
-                                        ],
-                                    ),
-                                    audio_input_device_list_view,
-                                ],
-                                expand=True,
-                            ),
+                            audio_input_device_list_panel,
                             ft.Column(
                                 controls=[
                                     ft.Row(
@@ -261,11 +233,8 @@ class Home(ft.View):  # type:ignore[misc]
         app_state = self.app_state
         page = self.page
 
-        audio_input_device_list_view = self.audio_input_device_list_view
-        assert audio_input_device_list_view is not None
-
-        audio_input_device_controls_dict = self.audio_input_device_controls_dict
-        assert audio_input_device_controls_dict is not None
+        audio_input_device_list_panel = self.audio_input_device_list_panel
+        assert audio_input_device_list_panel is not None
 
         track_list_view = self.track_list_view
         assert track_list_view is not None
@@ -275,61 +244,9 @@ class Home(ft.View):  # type:ignore[misc]
 
         scene = app_state.scenes[index]
 
-        audio_input_device_list_view.controls.clear()
-        audio_input_device_controls_dict.clear()
-
-        for device_index, device in enumerate(scene.devices):
-            device_mute_button = ft.IconButton(icon=ft.icons.MIC, icon_size=20)
-            device_edit_button = ft.IconButton(icon=ft.icons.EDIT, icon_size=20)
-            device_volume_progress_bar = ft.ProgressBar(value=0, bar_height=4)
-
-            audio_input_device_list_view.controls.append(
-                ft.Container(
-                    content=ft.Row(
-                        controls=[
-                            ft.Row(
-                                controls=[
-                                    ft.Icon(
-                                        name=ft.icons.MIC,
-                                        size=16,
-                                        color=ft.colors.ON_SURFACE,
-                                    ),
-                                    ft.Column(
-                                        controls=[
-                                            ft.Text(
-                                                value=f"{device.portaudio_name}",
-                                                overflow=ft.TextOverflow.FADE,
-                                                no_wrap=True,
-                                                expand=True,
-                                            ),
-                                            device_volume_progress_bar,
-                                        ],
-                                        expand=True,
-                                    ),
-                                ],
-                                spacing=20,
-                                expand=True,
-                            ),
-                            ft.Row(
-                                controls=[
-                                    device_mute_button,
-                                    device_edit_button,
-                                ],
-                            ),
-                        ],
-                    ),
-                    bgcolor=ft.colors.ON_SECONDARY,
-                    alignment=ft.alignment.center,
-                    padding=16,
-                    height=70,
-                ),
-            )
-
-            audio_input_device_controls_dict[device_index] = AudioInputDeviceControls(
-                mute_button=device_mute_button,
-                edit_button=device_edit_button,
-                volume_progress_bar=device_volume_progress_bar,
-            )
+        await audio_input_device_list_panel.on_scene_loaded(
+            scene=scene,
+        )
 
         track_list_view.controls.clear()
         track_controls_dict.clear()
@@ -357,7 +274,7 @@ class Home(ft.View):  # type:ignore[misc]
                                                 no_wrap=True,
                                                 expand=True,
                                             ),
-                                            device_volume_progress_bar,
+                                            track_volume_progress_bar,
                                         ],
                                         expand=True,
                                     ),
@@ -389,14 +306,6 @@ class Home(ft.View):  # type:ignore[misc]
 
         app_state.selected_scene_index = index
         page.update()
-
-    async def on_add_audio_input_device_button_clicked(
-        self,
-        event: ft.ControlEvent,
-    ) -> None:
-        page = self.page
-
-        page.go("/add_audio_input_device")
 
     async def on_add_track_button_clicked(
         self,
