@@ -3,7 +3,6 @@ import math
 import struct
 import tempfile
 import traceback
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from logging import getLogger
 from pathlib import Path
@@ -17,14 +16,9 @@ from ...scene import SceneDevice
 from ..app_state import AppState
 from ..controls.audio_input_device_list_panel import AudioInputDeviceListPanel
 from ..controls.scene_selection_panel import SceneSelectionPanel
+from ..controls.track_list_panel import TrackListPanel
 
 logger = getLogger(__name__)
-
-
-@dataclass
-class TrackControls:
-    edit_button: ft.IconButton
-    volume_progress_bar: ft.ProgressBar
 
 
 class Home(ft.View):  # type:ignore[misc]
@@ -33,9 +27,7 @@ class Home(ft.View):  # type:ignore[misc]
 
     scene_panel: SceneSelectionPanel | None
     audio_input_device_list_panel: AudioInputDeviceListPanel | None
-
-    track_list_view: ft.ListView | None
-    track_controls_dict: dict[int, TrackControls]
+    track_list_panel: TrackListPanel | None
 
     def __init__(
         self,
@@ -53,9 +45,7 @@ class Home(ft.View):  # type:ignore[misc]
 
         self.scene_panel = None
         self.audio_input_device_list_panel = None
-
-        self.track_list_view = None
-        self.track_controls_dict = {}
+        self.track_list_panel = None
 
         self.app_state = app_state
         self.audio_input_device_manager = audio_input_device_manager
@@ -86,17 +76,13 @@ class Home(ft.View):  # type:ignore[misc]
         )
         self.audio_input_device_list_panel = audio_input_device_list_panel
 
-        add_track_button = ft.IconButton(
-            icon=ft.icons.ADD,
-            icon_size=24,
-            on_click=self.on_add_track_button_clicked,
+        track_list_panel = TrackListPanel(
+            app_state=app_state,
+            audio_input_device_manager=audio_input_device_manager,
+            config_store_manager=config_store_manager,
+            expand=True,
         )
-
-        track_list_view = ft.ListView(
-            expand=1,
-            spacing=10,
-        )
-        self.track_list_view = track_list_view
+        self.track_list_panel = track_list_panel
 
         mute_button = ft.IconButton(
             icon=ft.icons.MIC,
@@ -189,18 +175,7 @@ class Home(ft.View):  # type:ignore[misc]
                     ft.Row(
                         controls=[
                             audio_input_device_list_panel,
-                            ft.Column(
-                                controls=[
-                                    ft.Row(
-                                        controls=[
-                                            ft.Text(value="トラック"),
-                                            add_track_button,
-                                        ],
-                                    ),
-                                    track_list_view,
-                                ],
-                                expand=True,
-                            ),
+                            track_list_panel,
                         ],
                         expand=True,
                     ),
@@ -236,11 +211,8 @@ class Home(ft.View):  # type:ignore[misc]
         audio_input_device_list_panel = self.audio_input_device_list_panel
         assert audio_input_device_list_panel is not None
 
-        track_list_view = self.track_list_view
-        assert track_list_view is not None
-
-        track_controls_dict = self.track_controls_dict
-        assert track_controls_dict is not None
+        track_list_panel = self.track_list_panel
+        assert track_list_panel is not None
 
         scene = app_state.scenes[index]
 
@@ -248,72 +220,15 @@ class Home(ft.View):  # type:ignore[misc]
             scene=scene,
         )
 
-        track_list_view.controls.clear()
-        track_controls_dict.clear()
-
-        for track_index, track in enumerate(scene.tracks):
-            track_edit_button = ft.IconButton(icon=ft.icons.EDIT, icon_size=20)
-            track_volume_progress_bar = ft.ProgressBar(value=0, bar_height=4)
-
-            track_list_view.controls.append(
-                ft.Container(
-                    content=ft.Row(
-                        controls=[
-                            ft.Row(
-                                controls=[
-                                    ft.Icon(
-                                        name=ft.icons.MULTITRACK_AUDIO,
-                                        size=16,
-                                        color=ft.colors.ON_SURFACE,
-                                    ),
-                                    ft.Column(
-                                        controls=[
-                                            ft.Text(
-                                                value=f"{track.name}",
-                                                overflow=ft.TextOverflow.FADE,
-                                                no_wrap=True,
-                                                expand=True,
-                                            ),
-                                            track_volume_progress_bar,
-                                        ],
-                                        expand=True,
-                                    ),
-                                ],
-                                spacing=20,
-                                expand=True,
-                            ),
-                            ft.Row(
-                                controls=[
-                                    track_edit_button,
-                                ],
-                            ),
-                        ],
-                    ),
-                    bgcolor=ft.colors.ON_SECONDARY,
-                    alignment=ft.alignment.center,
-                    padding=16,
-                    height=70,
-                ),
-            )
-
-            track_controls_dict[track_index] = TrackControls(
-                edit_button=track_edit_button,
-                volume_progress_bar=track_volume_progress_bar,
-            )
+        await track_list_panel.on_scene_loaded(
+            scene=scene,
+        )
 
         app_state.is_recording = False
         app_state.is_paused = False
 
         app_state.selected_scene_index = index
         page.update()
-
-    async def on_add_track_button_clicked(
-        self,
-        event: ft.ControlEvent,
-    ) -> None:
-        page = self.page
-
-        page.go("/add_track")
 
     async def save_config(self) -> None:
         config_store_manager = self.config_store_manager
