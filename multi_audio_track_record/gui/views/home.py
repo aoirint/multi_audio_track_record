@@ -15,6 +15,7 @@ from ...audio_input_device_manager import AudioInputDeviceManager
 from ...config_store_manager import Config, ConfigStoreManager
 from ...scene import SceneDevice
 from ..app_state import AppState
+from ..controls.scene_selection_panel import SceneSelectionPanel
 
 logger = getLogger(__name__)
 
@@ -36,7 +37,7 @@ class Home(ft.View):  # type:ignore[misc]
     main_task_future: asyncio.Future | None
     record_task_future: asyncio.Future | None
 
-    scene_dropdown: ft.Dropdown | None
+    scene_panel: SceneSelectionPanel | None
 
     audio_input_device_list_view: ft.ListView | None
     audio_input_device_controls_dict: dict[int, AudioInputDeviceControls]
@@ -58,7 +59,7 @@ class Home(ft.View):  # type:ignore[misc]
         self.main_task_future = None
         self.record_task_future = None
 
-        self.scene_dropdown = None
+        self.scene_panel = None
 
         self.audio_input_device_list_view = None
         self.audio_input_device_controls_dict = {}
@@ -73,31 +74,19 @@ class Home(ft.View):  # type:ignore[misc]
     def build(self) -> None:
         page = self.page
         app_state = self.app_state
+        audio_input_device_manager = self.audio_input_device_manager
+        config_store_manager = self.config_store_manager
 
-        add_scene_button = ft.IconButton(
-            icon=ft.icons.ADD,
-            icon_size=24,
-            on_click=self.on_add_scene_button_clicked,
+        async def on_scene_index_selected(selected_scene_index: int) -> None:
+            await self.load_scene(index=selected_scene_index)
+
+        scene_panel = SceneSelectionPanel(
+            app_state=app_state,
+            audio_input_device_manager=audio_input_device_manager,
+            config_store_manager=config_store_manager,
+            on_scene_index_selected=on_scene_index_selected,
         )
-
-        scene_options: list[ft.dropdown.Option] = []
-        for scene_index, scene in enumerate(app_state.scenes):
-            scene_options.append(
-                ft.dropdown.Option(
-                    key=str(scene_index),
-                    text=scene.name,
-                ),
-            )
-
-        selected_scene_index = app_state.selected_scene_index
-        scene_dropdown = ft.Dropdown(
-            value=(
-                str(selected_scene_index) if selected_scene_index is not None else None
-            ),
-            options=scene_options,
-            on_change=self.on_scene_dropdown_change,
-        )
-        self.scene_dropdown = scene_dropdown
+        self.scene_panel = scene_panel
 
         add_audio_input_device_button = ft.IconButton(
             icon=ft.icons.ADD,
@@ -213,17 +202,7 @@ class Home(ft.View):  # type:ignore[misc]
         self.controls = [
             ft.Column(
                 controls=[
-                    ft.Column(
-                        controls=[
-                            ft.Row(
-                                controls=[
-                                    ft.Text(value="シーン"),
-                                    add_scene_button,
-                                ],
-                            ),
-                            scene_dropdown,
-                        ],
-                    ),
+                    scene_panel,
                     ft.Row(
                         controls=[
                             ft.Column(
@@ -410,29 +389,6 @@ class Home(ft.View):  # type:ignore[misc]
 
         app_state.selected_scene_index = index
         page.update()
-
-    async def on_add_scene_button_clicked(
-        self,
-        event: ft.ControlEvent,
-    ) -> None:
-        page = self.page
-
-        page.go("/add_scene")
-
-    async def on_scene_dropdown_change(
-        self,
-        event: ft.ControlEvent,
-    ) -> None:
-        scene_dropdown = self.scene_dropdown
-        assert scene_dropdown is not None
-
-        selected_index_string = scene_dropdown.value
-        assert selected_index_string is not None
-
-        # TODO: 録音中のシーン切り替えを禁止する
-
-        selected_index = int(selected_index_string)
-        await self.load_scene(index=selected_index)
 
     async def on_add_audio_input_device_button_clicked(
         self,
