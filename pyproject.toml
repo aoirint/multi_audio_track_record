@@ -26,7 +26,7 @@ python = "~3.11"
 pydantic = "^2.7.1"
 pyaudio = "^0.2.14"
 flet = "^0.22.1"
-platformdirs = "^4.2.0"
+platformdirs = "^4.2.2"
 
 
 [tool.poetry.group.dev.dependencies]
